@@ -27,18 +27,21 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * MOB-2.1 — Compose Canvas OHLC candle chart (fixtures spike).
+ * MOB-2.1 / 2.7 — Compose Canvas OHLC + optional volume strip.
  *
  * - Horizontal pan + pinch-zoom on the time axis
  * - Long-press drag → crosshair + nearest candle callback
  * - Draws the visible index window only (no full-series copy per frame)
+ * - MOB-2.7: collapsible volume histogram (~22% bottom)
  *
- * TODO(MOB-2.7): volume pane · TODO(MOB-2.5): live append without full rebuild
+ * TODO(MOB-2.5): live append without full rebuild
  */
 @Composable
 fun CandleChart(
     candles: List<Candle>,
     modifier: Modifier = Modifier,
+    showVolume: Boolean = true,
+    seriesKey: String = "",
     onCrosshairCandle: (Candle?) -> Unit = {},
 ) {
     if (candles.isEmpty()) return
@@ -49,8 +52,12 @@ fun CandleChart(
     val minCandleWidthPx = with(density) { 4.dp.toPx() }
     val maxCandleWidthPx = with(density) { 28.dp.toPx() }
 
-    var startIndex by remember(candles.size) { mutableIntStateOf(max(0, candles.size - 48)) }
-    var candleWidthPx by remember { mutableFloatStateOf(with(density) { 10.dp.toPx() }) }
+    var startIndex by remember(seriesKey, candles.size) {
+        mutableIntStateOf(max(0, candles.size - 48))
+    }
+    var candleWidthPx by remember(seriesKey) {
+        mutableFloatStateOf(with(density) { 10.dp.toPx() })
+    }
     var crosshairX by remember { mutableStateOf<Float?>(null) }
     var drawEpoch by remember { mutableIntStateOf(0) }
 
@@ -74,12 +81,11 @@ fun CandleChart(
         modifier = modifier
             .fillMaxSize()
             .onSizeChanged { canvasWidthPx = it.width.toFloat() }
-            .pointerInput(candles.size) {
+            .pointerInput(seriesKey, candles.size) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     val width = canvasWidthPx.takeIf { it > 0f } ?: size.width.toFloat()
                     val cw = (candleWidthPx * zoom).coerceIn(minCandleWidthPx, maxCandleWidthPx)
                     val count = visibleCount(width, cw)
-                    // Drag right → older candles (decrease start).
                     val shiftCandles = (-pan.x / cw).roundToInt()
                     candleWidthPx = cw
                     startIndex = clampWindow(startIndex + shiftCandles, count)
@@ -88,7 +94,7 @@ fun CandleChart(
                     drawEpoch++
                 }
             }
-            .pointerInput(candles.size) {
+            .pointerInput(seriesKey, candles.size) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { offset ->
                         crosshairX = offset.x
@@ -122,6 +128,11 @@ fun CandleChart(
 
         val width = size.width
         val height = size.height
+        val volFrac = if (showVolume) 0.22f else 0f
+        val priceHeight = height * (1f - volFrac)
+        val volTop = priceHeight
+        val volHeight = height - priceHeight
+
         val cw = candleWidthPx
         val count = visibleCount(width, cw)
         val start = clampWindow(startIndex, count)
@@ -130,21 +141,23 @@ fun CandleChart(
 
         var lo = Float.POSITIVE_INFINITY
         var hi = Float.NEGATIVE_INFINITY
+        var maxVol = 0.0
         for (i in start until end) {
             val c = candles[i]
             lo = min(lo, c.low.toFloat())
             hi = max(hi, c.high.toFloat())
+            if (c.volume > maxVol) maxVol = c.volume
         }
         val pad = ((hi - lo) * 0.08f).coerceAtLeast(1f)
         lo -= pad
         hi += pad
         val span = (hi - lo).coerceAtLeast(1e-3f)
 
-        fun yFor(price: Float): Float = height - ((price - lo) / span) * height
+        fun yFor(price: Float): Float = priceHeight - ((price - lo) / span) * priceHeight
 
         val gridColor = chartColors.grid
         for (i in 0..3) {
-            val gy = height * i / 4f
+            val gy = priceHeight * i / 4f
             drawLine(gridColor, Offset(0f, gy), Offset(width, gy), strokeWidth = 1f)
         }
 
@@ -169,6 +182,24 @@ fun CandleChart(
                 topLeft = Offset(cx - bodyW / 2f, top),
                 size = Size(bodyW, bodyH),
             )
+        }
+
+        if (showVolume && volHeight > 1f && maxVol > 0.0) {
+            drawLine(gridColor, Offset(0f, volTop), Offset(width, volTop), strokeWidth = 1f)
+            val barW = cw * 0.7f
+            for (i in start until end) {
+                val c = candles[i]
+                val slot = i - start
+                val cx = slot * cw + cw / 2f
+                val bull = c.close >= c.open
+                val color = if (bull) chartColors.bull else chartColors.bear
+                val h = (c.volume / maxVol).toFloat().coerceIn(0f, 1f) * (volHeight - 2f)
+                drawRect(
+                    color = color.copy(alpha = 0.45f),
+                    topLeft = Offset(cx - barW / 2f, height - h),
+                    size = Size(barW, h.coerceAtLeast(1f)),
+                )
+            }
         }
 
         val xh = crosshairX
