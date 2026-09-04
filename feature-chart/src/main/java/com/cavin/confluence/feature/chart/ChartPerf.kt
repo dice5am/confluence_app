@@ -17,7 +17,7 @@ import com.cavin.confluence.data.model.Timeframe
 object ChartPerf {
     private const val TAG = "ConfluenceChartPerf"
 
-    inline fun <T> measureMs(label: String, block: () -> T): T {
+    fun <T> measureMs(label: String, block: () -> T): T {
         val t0 = SystemClock.elapsedRealtime()
         return try {
             block()
