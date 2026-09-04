@@ -34,9 +34,15 @@ android {
 }
 
 dependencies {
-    // MD-1.1 contract models + fake fixtures only.
-    // Arch-B: API stubs — NO exchange SDKs, NO trade execution.
+    // MD-1.1 models + fake fixtures + Arch-B HTTP/SSE client.
+    // NO exchange SDKs, NO trade execution.
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.sse)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.google.truth)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 

@@ -1,0 +1,9 @@
+{
+  "status": "ok",
+  "lastSourceTsMs": 1725404400000,
+  "venue": "binance",
+  "symbol": "BTCUSDT",
+  "gapCount": 0,
+  "activeTimeframes": ["1m", "1h"],
+  "note": "ok"
+}
