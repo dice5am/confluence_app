@@ -1,6 +1,6 @@
-# Market Data service (Phase 1 scaffold)
+# Market Data service (Phase 1)
 
-Binance **public** REST + WS candle ingest scaffold + offline health server.
+Binance **public** REST + WS candle ingest + SQLite store + 1m gap-fill + health machine.
 
 **Hard rules:** no trade execution, no API secrets, no venue merge, no Bybit adapter yet, no P2-P4.
 **Deploy:** local/box only — **no VPS**.
@@ -73,8 +73,6 @@ const closed = store.queryRange({
 store.close();
 ```
 
-Not in scope here: HTTP history/live/bootstrap APIs (MD-1.7–1.9).
-
 ## Gap detect + REST fill (MD-1.5)
 
 Detect missing `openTimeMs` steps on **1m** for a venue/symbol, fill via Binance public REST (`fetchKlinesPaginated`), upsert into `CandleStore`, and expose `gapCount` for health.
@@ -111,7 +109,7 @@ hm.setGapCount(gaps.gapCount);
 const health = hm.getHealth(); // { status, lastSourceTsMs, venue, symbol, ... }
 ```
 
-Does not add HTTP history/live routes (those are MD-1.7–1.9).
+Not in scope here: HTTP history/live/bootstrap consumer APIs (MD-1.7–1.9).
 
 ## Alerts fixture paths
 
