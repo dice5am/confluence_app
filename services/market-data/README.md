@@ -16,7 +16,9 @@ Contract: [docs/market-data/MD-1.1-candle-contract.md](../../docs/market-data/MD
 | `src/binance/map.ts` | Venue rows to MD-1.1 candles |
 | `src/binance/errors.ts` | Typed 429 / 418 / 5xx / timeout |
 | `src/server.ts` | GET /health |
+| `src/store/candle-store.ts` | MD-1.4 SQLite candle store (upsert + range query) |
 | `fixtures/` | Offline closed candles + health samples for Alerts |
+| `data/` | Local SQLite file (`candles.sqlite`) — gitignored |
 | `Dockerfile` / `docker-compose.yml` | **Local/box compose only** |
 
 ## Run tests (offline)
@@ -43,6 +45,33 @@ curl http://127.0.0.1:8080/health
 ```
 
 There is **no** VPS deploy path, host SSH, or remote compose target in this scaffold.
+
+
+## Candle store (MD-1.4)
+
+Persists MD-1.1 candles in SQLite under `data/candles.sqlite` (override with `CandleStore({ dbPath })`).
+
+- **Primary key:** `(venue, symbol, timeframe, openTimeMs)`
+- **Idempotent upsert:** re-writing the same key is OK; a forming bar (`isFinal=false`) may be replaced by its final
+- **Range query:** `queryRange({ venue, symbol, timeframe, fromMs, toMs, closedOnly? })` ordered by `openTimeMs` ascending
+
+```ts
+import { CandleStore } from '@confluence/market-data';
+
+const store = new CandleStore(); // → data/candles.sqlite
+store.upsert(candle);
+const closed = store.queryRange({
+  venue: 'binance',
+  symbol: 'BTCUSDT',
+  timeframe: '1m',
+  fromMs,
+  toMs,
+  closedOnly: true,
+});
+store.close();
+```
+
+Not in scope here: gap-fill (MD-1.5), health machine (MD-1.6), HTTP history/live APIs (MD-1.7–1.9).
 
 ## Alerts fixture paths
 

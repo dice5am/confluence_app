@@ -14,3 +14,5 @@ export {
 } from './binance/rest.js';
 export { BinanceKlineWsClient, BINANCE_WS_BASE } from './binance/ws.js';
 export { createServer } from './server.js';
+export { CandleStore } from './store/candle-store.js';
+export type { CandleRangeQuery, CandleStoreOptions } from './store/candle-store.js';
