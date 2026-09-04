@@ -13,6 +13,8 @@ export interface CandleRangeQuery {
   toMs: number;
   /** When true, only return candles with isFinal=true */
   closedOnly?: boolean;
+  /** Optional max rows (ascending). Used by MD-2.7 pagination. */
+  limit?: number;
 }
 
 export interface CandleStoreOptions {
@@ -150,24 +152,32 @@ export class CandleStore {
    */
   queryRange(q: CandleRangeQuery): Candle[] {
     const closedOnly = q.closedOnly === true;
+    const hasLimit =
+      q.limit !== undefined && Number.isFinite(q.limit) && q.limit > 0;
+    const limitSql = hasLimit ? ' LIMIT @limit' : '';
     const sql = closedOnly
       ? `SELECT * FROM candles
          WHERE venue = @venue AND symbol = @symbol AND timeframe = @timeframe
            AND open_time_ms >= @fromMs AND open_time_ms <= @toMs
            AND is_final = 1
-         ORDER BY open_time_ms ASC`
+         ORDER BY open_time_ms ASC${limitSql}`
       : `SELECT * FROM candles
          WHERE venue = @venue AND symbol = @symbol AND timeframe = @timeframe
            AND open_time_ms >= @fromMs AND open_time_ms <= @toMs
-         ORDER BY open_time_ms ASC`;
+         ORDER BY open_time_ms ASC${limitSql}`;
 
-    const rows = this.db.prepare(sql).all({
+    const params: Record<string, string | number> = {
       venue: q.venue,
       symbol: q.symbol,
       timeframe: q.timeframe,
       fromMs: q.fromMs,
       toMs: q.toMs,
-    }) as Record<string, unknown>[];
+    };
+    if (hasLimit) {
+      params.limit = Math.floor(q.limit!);
+    }
+
+    const rows = this.db.prepare(sql).all(params) as Record<string, unknown>[];
 
     return rows.map(rowToCandle);
   }

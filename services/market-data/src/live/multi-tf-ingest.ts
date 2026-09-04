@@ -61,6 +61,8 @@ export function startMultiTfLiveIngest(
   opts.health?.setFeedConnected(false);
   opts.health?.setNote('connecting multi-TF Binance public WS');
   opts.health?.setActiveTimeframes([]);
+  // MD-2.9: expected = in-use set so subset subscriptions can reach `ok`
+  opts.health?.setExpectedTimeframes(timeframes);
 
   const refreshHealthConnection = () => {
     if (!running) return;

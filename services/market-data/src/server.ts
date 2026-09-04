@@ -1,13 +1,14 @@
 /**
  * Market-data HTTP consumer APIs (MD-1.7 / 1.8 / 1.9) + health.
- * Phase 2: multi-TF live ingest via startMultiTfLiveIngest (MD-2.3).
+ * Phase 2: multi-TF live (MD-2.3), pagination/resume (MD-2.7),
+ * rate-limit/reconnect (MD-2.8), health to consumers (MD-2.9).
  *
  * Local docker compose only – no VPS / host / SSH deploy paths.
  *
  * Endpoints:
- * - GET /health | /v1/health     → HealthMachine snapshot
- * - GET /v1/candles              → closed history (MD-1.7)
- * - GET /v1/candles/stream       → SSE live forming + finals (MD-1.8)
+ * - GET /health | /v1/health     → MD-1.1 HealthMachine snapshot (MD-2.9)
+ * - GET /v1/candles              → closed history + pagination/resume (MD-1.7 / 2.7)
+ * - GET /v1/candles/stream       → SSE live + periodic health (MD-1.8 / 2.9)
  * - GET /v1/bootstrap-plan       → MD-1.9 sequence helper for Mobile/Alerts
  */
 import http from 'node:http';
@@ -21,6 +22,8 @@ import {
   parseTimeframe,
   queryClosedHistory,
   planBootstrapThenSubscribe,
+  HISTORY_DEFAULT_LIMIT,
+  HISTORY_MAX_LIMIT,
 } from './api/index.js';
 import type { Timeframe } from './types/candle.js';
 import { startMultiTfLiveIngest } from './live/multi-tf-ingest.js';
@@ -102,9 +105,15 @@ export function createServer(deps?: ServerDeps): http.Server {
     const url = parseUrl(req);
     const path = url.pathname.replace(/\/+$/, '') || '/';
 
-    // --- Health (MD-1.6 exposed) ---
+    // --- Health (MD-1.6 / MD-2.9) ---
     if (path === '/health' || path === '/v1/health') {
-      json(res, 200, d.health.getHealth(nowMs()));
+      const health = d.health.getHealth(nowMs());
+      json(res, 200, {
+        ...health,
+        consumerNote:
+          'Mobile: badge non-ok. Alerts: MUST suppress new confluence fires on ' +
+          'stale or disconnected; degraded = Alerts policy.',
+      });
       return;
     }
 
@@ -152,10 +161,46 @@ function handleHistory(
   const symbol = url.searchParams.get('symbol') ?? 'BTCUSDT';
   const venue = url.searchParams.get('venue') ?? 'binance';
 
+  let limit: number | undefined;
+  const limitRaw = url.searchParams.get('limit');
+  if (limitRaw !== null && limitRaw !== '') {
+    const n = Number(limitRaw);
+    if (!Number.isFinite(n)) {
+      json(res, 400, {
+        error: 'bad_request',
+        message: 'invalid number for limit',
+      });
+      return;
+    }
+    limit = n;
+  }
+
+  let cursor: number | undefined;
+  const cursorRaw = url.searchParams.get('cursor');
+  if (cursorRaw !== null && cursorRaw !== '') {
+    const n = Number(cursorRaw);
+    if (!Number.isFinite(n)) {
+      json(res, 400, {
+        error: 'bad_request',
+        message: 'invalid number for cursor',
+      });
+      return;
+    }
+    cursor = n;
+  }
+
   try {
     const result = queryClosedHistory(
       d.store,
-      { venue, symbol, timeframe: timeframeRaw, fromMs, toMs },
+      {
+        venue,
+        symbol,
+        timeframe: timeframeRaw,
+        fromMs,
+        toMs,
+        limit,
+        cursor,
+      },
       nowMs(),
     );
     json(res, 200, {
@@ -166,7 +211,18 @@ function handleHistory(
       toMs: result.toMs,
       effectiveFromMs: result.effectiveFromMs,
       truncated: result.truncated,
+      limit: result.limit,
+      hasMore: result.hasMore,
+      nextCursor: result.nextCursor,
+      nextFromMs: result.nextFromMs,
       candles: result.candles,
+      resume: {
+        note:
+          'After app kill: pass cursor=<last openTimeMs> or fromMs=<nextFromMs> ' +
+          'with the same toMs — no full re-bootstrap required. Upsert by primary key.',
+        defaultLimit: HISTORY_DEFAULT_LIMIT,
+        maxLimit: HISTORY_MAX_LIMIT,
+      },
     });
   } catch (err) {
     if (err instanceof HistoryQueryError) {
@@ -217,8 +273,14 @@ function handleLiveStream(
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
 
-  // Snapshot health on connect
-  send('health', d.health.getHealth());
+  // MD-2.9: health snapshot on connect (Mobile badge / Alerts suppress)
+  const healthSnap = d.health.getHealth();
+  send('health', {
+    ...healthSnap,
+    consumerNote:
+      'Alerts MUST suppress new confluence fires when status is stale or disconnected. ' +
+      'degraded = Alerts policy. Mobile may badge all non-ok statuses.',
+  });
 
   const unsubscribe = d.hub.subscribe((candle) => {
     if (symbolFilter && candle.symbol !== symbolFilter) return;
@@ -227,8 +289,10 @@ function handleLiveStream(
     send('candle', candle);
   });
 
+  // Keepalive + periodic health (MD-2.9) so consumers see stale/disconnect without polling
   const keepalive = setInterval(() => {
     res.write(': keepalive\n\n');
+    send('health', d.health.getHealth());
   }, 15_000);
 
   const cleanup = () => {
@@ -272,12 +336,20 @@ function handleBootstrapPlan(
     lookbackMs,
     ...plan,
     endpoints: {
-      history: 'GET /v1/candles?symbol=&timeframe=&fromMs=&toMs=&venue=',
+      history:
+        'GET /v1/candles?symbol=&timeframe=&fromMs=&toMs=&venue=&limit=&cursor=',
       live: 'GET /v1/candles/stream?symbol=&timeframe=&finalsOnly=',
       health: 'GET /v1/health',
     },
     alertsNote:
-      'Alerts MUST consume isFinal=true only (use finalsOnly=1 on the stream).',
+      'Alerts MUST consume isFinal=true only (use finalsOnly=1 on the stream). ' +
+      'Alerts MUST suppress new confluence fires on health stale|disconnected.',
+    resumeNote:
+      'MD-2.7: paginate with limit (default 500). Resume after kill via cursor ' +
+      '(last openTimeMs) or fromMs=nextFromMs — do not full re-bootstrap.',
+    healthNote:
+      'MD-2.9: poll GET /v1/health or listen for SSE event:health. ' +
+      'Mobile badges non-ok; Alerts suppress on stale/disconnected.',
   });
 }
 

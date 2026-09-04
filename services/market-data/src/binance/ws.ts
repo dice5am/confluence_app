@@ -1,6 +1,11 @@
 import WebSocket from 'ws';
 import type { Candle, Timeframe } from '../types/candle.js';
 import { timeframeToBinanceInterval, mapWsKlineToCandle, type BinanceWsKlinePayload } from './map.js';
+import {
+  WS_INITIAL_BACKOFF_MS,
+  WS_MAX_BACKOFF_MS,
+  computeWsReconnectDelayMs,
+} from './reconnect-policy.js';
 
 export const BINANCE_WS_BASE = 'wss://stream.binance.com:9443';
 
@@ -42,8 +47,8 @@ export class BinanceKlineWsClient {
       symbol: opts.symbol ?? 'BTCUSDT',
       timeframe: opts.timeframe,
       wsBase: opts.wsBase ?? BINANCE_WS_BASE,
-      initialBackoffMs: opts.initialBackoffMs ?? 500,
-      maxBackoffMs: opts.maxBackoffMs ?? 30_000,
+      initialBackoffMs: opts.initialBackoffMs ?? WS_INITIAL_BACKOFF_MS,
+      maxBackoffMs: opts.maxBackoffMs ?? WS_MAX_BACKOFF_MS,
     };
   }
 
@@ -112,13 +117,16 @@ export class BinanceKlineWsClient {
     });
   }
 
-  /** Exponential backoff with jitter (skeleton). */
+  /**
+   * MD-2.8 exponential backoff with jitter — never tight-reconnect loops.
+   * Uses shared {@link computeWsReconnectDelayMs}.
+   */
   private scheduleReconnect(): void {
     this.opts.onStatus?.('reconnecting');
-    const base = this.opts.initialBackoffMs * Math.pow(2, this.attempt);
-    const capped = Math.min(base, this.opts.maxBackoffMs);
-    const jitter = Math.floor(Math.random() * Math.min(250, capped * 0.2));
-    const delay = capped + jitter;
+    const delay = computeWsReconnectDelayMs(this.attempt, {
+      initialMs: this.opts.initialBackoffMs,
+      maxMs: this.opts.maxBackoffMs,
+    });
     this.attempt += 1;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
@@ -126,3 +134,4 @@ export class BinanceKlineWsClient {
     }, delay);
   }
 }
+

@@ -1,12 +1,16 @@
-# Market Data service (Phase 1 + Phase 2 basic charts)
+# Market Data service (Phase 1 + Phase 2 chart support)
 
-Binance **public** REST + WS candle ingest + SQLite store + 1m gap-fill + health machine + **consumer APIs** (history / live SSE / bootstrap) + **multi-TF venue-native backfill/live** (MD-2.1–2.3).
+Binance **public** REST + WS candle ingest + SQLite store + 1m gap-fill + health machine + **consumer APIs** (history / live SSE / bootstrap) + **multi-TF venue-native backfill/live** (MD-2.1–2.3) + **pagination/resume** (MD-2.7) + **rate-limit/reconnect** (MD-2.8) + **health to consumers** (MD-2.9).
 
 **Hard rules:** no trade execution, no API secrets, no venue merge, no Bybit adapter yet, no MD-2.5/2.6 VP, no P3/P4.
 **Deploy:** local/box only — **no VPS**.
 
 Contract: [docs/market-data/MD-1.1-candle-contract.md](../../docs/market-data/MD-1.1-candle-contract.md)  
-TF policy: [docs/market-data/MD-2.1-tf-policy.md](../../docs/market-data/MD-2.1-tf-policy.md) (all 7 TFs **venue-native**; no silent 1m rollup)
+TF policy: [docs/market-data/MD-2.1-tf-policy.md](../../docs/market-data/MD-2.1-tf-policy.md)  
+Bootstrap depth: [docs/market-data/MD-2.4-bootstrap-depth.md](../../docs/market-data/MD-2.4-bootstrap-depth.md)  
+Pagination: [docs/market-data/MD-2.7-pagination-resume.md](../../docs/market-data/MD-2.7-pagination-resume.md)  
+Rate-limit/reconnect: [docs/market-data/MD-2.8-rate-limit-reconnect.md](../../docs/market-data/MD-2.8-rate-limit-reconnect.md)  
+Health consumers: [docs/market-data/MD-2.9-health-consumers.md](../../docs/market-data/MD-2.9-health-consumers.md)
 
 ## Layout
 
@@ -26,6 +30,7 @@ TF policy: [docs/market-data/MD-2.1-tf-policy.md](../../docs/market-data/MD-2.1-
 | `src/binance/weight-budget.ts` | MD-2.2 shared REST weight gate (backfill + gap-fill) |
 | `src/backfill/` | MD-2.2 multi-TF REST → CandleStore |
 | `src/live/multi-tf-ingest.ts` | MD-2.3 configurable multi-TF live WS |
+| `src/binance/reconnect-policy.ts` | MD-2.8 REST retry + WS backoff (no tight 429 loop) |
 | `fixtures/` | Offline closed candles + health samples for Alerts |
 | `data/` | Local SQLite file (`candles.sqlite`) — gitignored |
 | `Dockerfile` / `docker-compose.yml` | **Local/box compose only** |
@@ -127,15 +132,17 @@ const health = hm.getHealth(); // { status, lastSourceTsMs, venue, symbol, ... }
 
 ## Consumer APIs (MD-1.7 / 1.8 / 1.9)
 
-### MD-1.7 — History GET
+### MD-1.7 / MD-2.7 — History GET + pagination/resume
 
 ```http
-GET /v1/candles?symbol=BTCUSDT&timeframe=1m&fromMs=&toMs=&venue=binance
+GET /v1/candles?symbol=BTCUSDT&timeframe=1m&fromMs=&toMs=&venue=binance&limit=500&cursor=
 ```
 
 - Returns **closed only** (`isFinal=true`), ordered by `openTimeMs` ascending
 - Reads from `CandleStore` (never raw exchange payloads)
 - Respects MD-1.1 depth caps (`1m` 60d, `5m` 180d, `15m` 1y, higher TFs unbounded): older `fromMs` is clamped; response includes `truncated` + `effectiveFromMs`
+- **Pagination:** `limit` (default 500, max 1000); response `hasMore`, `nextCursor`, `nextFromMs`
+- **Resume after app kill:** pass `cursor=<last openTimeMs>` or `fromMs=<nextFromMs>` — no full re-bootstrap. Upsert by primary key.
 
 ### MD-1.8 — Live forming + final close (SSE)
 
@@ -160,14 +167,16 @@ GET /v1/bootstrap-plan?timeframe=1m&lookbackMs=3600000
 
 Library helpers: `planBootstrapThenSubscribe`, `bootstrapThenSubscribe` (see tests).
 
-### Health
+### Health (MD-1.6 / MD-2.9)
 
 ```http
 GET /health
 GET /v1/health
 ```
 
-Uses in-process `HealthMachine`.
+Uses in-process `HealthMachine` (MD-1.1 payload). Also `event: health` on SSE connect + ~15s keepalive.
+
+**Alerts MUST suppress** new confluence fires when `status` is `stale` or `disconnected`. Mobile badges non-ok. `degraded` = Alerts policy.
 
 
 
@@ -213,6 +222,30 @@ const handle = startMultiTfLiveIngest({
 });
 // handle.stop()
 ```
+
+## Phase 2 remaining (MD-2.4 / 2.7 / 2.8 / 2.9)
+
+### MD-2.4 Bootstrap depth (proposal)
+
+Chart P2 mins (Alerts may raise later): **1m ≥500**, **5m ≥300**, **15m ≥300**, **1h ≥300**, **4h ≥200**, **1d ≥200**, **1w ≥150**.  
+See [MD-2.4-bootstrap-depth.md](../../docs/market-data/MD-2.4-bootstrap-depth.md).
+
+### MD-2.7 Pagination + resume
+
+Documented above on `GET /v1/candles`. Library: `nextHistoryPageQuery`, `HISTORY_DEFAULT_LIMIT`.
+
+### MD-2.8 Rate-limit + reconnect
+
+- **REST weight:** `RestWeightBudget` (shared backfill + gap-fill)
+- **REST retry:** `withRestRetry` / `fetchKlinesPage` — exponential backoff on 429/418/5xx/timeout; never tight-loop
+- **WS:** `computeWsReconnectDelayMs` in `BinanceKlineWsClient` (500ms → 30s + jitter)
+
+See [MD-2.8-rate-limit-reconnect.md](../../docs/market-data/MD-2.8-rate-limit-reconnect.md).
+
+### MD-2.9 Health to consumers
+
+`/health`, `/v1/health`, and SSE `event: health` expose MD-1.1 health. Multi-TF ingest sets `expectedTimeframes` to the in-use set.  
+See [MD-2.9-health-consumers.md](../../docs/market-data/MD-2.9-health-consumers.md).
 
 ## Alerts fixture paths
 
