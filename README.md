@@ -16,6 +16,13 @@ Personal Android app for **BTC/USDT charts** and **confluence insight alerts**.
 - **No venue merge** (Binance primary, Bybit failover)
 - Market data contract: [`docs/market-data/MD-1.1-candle-contract.md`](docs/market-data/MD-1.1-candle-contract.md)
 
+## HOLD — do not push
+
+GitHub access / BUILD gate: **do not `git push`** until CoS unlocks the repo.  
+Scaffold lives locally under `/workspace/confluence_app`.
+
+Intended remote (when unlocked): `https://github.com/dice5am/confluence_app`
+
 ## Module map
 
 | Module | Role |
@@ -45,7 +52,7 @@ No circular deps. Features must not pull exchange SDKs.
 - **MOB-1.4** — Home hub with loading / empty / error / ready
 - **MOB-1.5 (light)** — MD-1.1 interfaces + fake fixtures
 
-**Out of scope here:** Canvas candles, overlays, trade execution.
+**Out of scope here:** Canvas candles, overlays, trade execution, git push.
 
 ## MD-1.1 data notes
 
@@ -69,7 +76,9 @@ If the Android SDK / JDK / Gradle wrapper binary are missing on the machine, see
 
 UI strings are insight / advisory only. There are **no** Buy, Sell, or order-placement actions in this scaffold.
 
-## Market data (Phase 1)
+## Market data service (Phase 1)
 
-Binance public REST/WS + local Docker scaffold: [`services/market-data/README.md`](services/market-data/README.md).
-Alerts golden-vector fixtures: [`docs/market-data/fixtures/`](docs/market-data/fixtures/) and [`services/market-data/fixtures/`](services/market-data/fixtures/).
+Binance public REST/WS scaffold + local/box Docker only (live VPS deferred):
+[`services/market-data/README.md`](services/market-data/README.md)
+
+Closed-candle + health fixtures for Alerts: `services/market-data/fixtures/`
