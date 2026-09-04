@@ -78,7 +78,7 @@ UI strings are insight / advisory only. There are **no** Buy, Sell, or order-pla
 
 ## Market data service (Phase 1)
 
-Binance public REST/WS + SQLite store + 1m gap-fill (MD-1.5) + health machine (MD-1.6); local/box Docker only (no VPS):
+Binance public REST/WS + SQLite store + gap-fill + health + consumer APIs (MD-1.7–1.9 history/SSE/bootstrap); local/box Docker only (no VPS):
 [`services/market-data/README.md`](services/market-data/README.md)
 
 Closed-candle + health fixtures for Alerts: `services/market-data/fixtures/`
