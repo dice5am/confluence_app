@@ -12,9 +12,9 @@ private val DarkColorScheme = darkColorScheme(
     primary = ConfluenceColors.Primary,
     onPrimary = ConfluenceColors.OnPrimary,
     primaryContainer = ConfluenceColors.PrimaryContainer,
-    secondary = ConfluenceColors.Accent,
-    onSecondary = ConfluenceColors.OnAccent,
-    secondaryContainer = ConfluenceColors.AccentContainer,
+    secondary = ConfluenceColors.CyberCyan,
+    onSecondary = ConfluenceColors.OnPrimary,
+    secondaryContainer = ConfluenceColors.VoidElevated,
     tertiary = ConfluenceColors.Tertiary,
     background = ConfluenceColors.Background,
     onBackground = ConfluenceColors.OnBackground,
@@ -50,6 +50,7 @@ data class ChartSafeColors(
 
 val LocalChartSafeColors = staticCompositionLocalOf { ChartSafeColors() }
 val LocalSpacing = staticCompositionLocalOf { Spacing }
+val LocalDimens = staticCompositionLocalOf { ConfluenceDimens }
 
 @Composable
 fun ConfluenceTheme(
@@ -77,6 +78,7 @@ fun ConfluenceTheme(
     CompositionLocalProvider(
         LocalChartSafeColors provides chartColors,
         LocalSpacing provides Spacing,
+        LocalDimens provides ConfluenceDimens,
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
@@ -91,4 +93,6 @@ object ConfluenceThemeAccess {
         @Composable get() = LocalChartSafeColors.current
     val spacing: Spacing
         @Composable get() = LocalSpacing.current
+    val dimens: ConfluenceDimens
+        @Composable get() = LocalDimens.current
 }

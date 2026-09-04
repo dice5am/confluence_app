@@ -298,7 +298,7 @@ fun CandleChart(
                     ChartAxisLabels.formatPrice(c.close.toFloat()),
                     leftPad + 4f,
                     (y - 6f).coerceAtLeast(priceTop + labelPaint.textSize),
-                    labelPaint.apply { color = ConfluenceColors.Accent.toArgb() },
+                    labelPaint.apply { color = ConfluenceColors.CyberCyan.toArgb() },
                 )
                 labelPaint.color = ConfluenceColors.OnSurfaceMuted.toArgb()
             }

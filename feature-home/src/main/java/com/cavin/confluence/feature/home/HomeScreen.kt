@@ -1,5 +1,6 @@
 package com.cavin.confluence.feature.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,11 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,20 +26,28 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cavin.confluence.core.ui.components.AppButton
 import com.cavin.confluence.core.ui.components.AppButtonStyle
-import com.cavin.confluence.core.ui.components.AppCard
-import com.cavin.confluence.core.ui.components.AppCardGlow
 import com.cavin.confluence.core.ui.components.AppSectionLabel
 import com.cavin.confluence.core.ui.components.AppStatusChip
+import com.cavin.confluence.core.ui.components.ConfluenceMeter
+import com.cavin.confluence.core.ui.components.DeltaChip
+import com.cavin.confluence.core.ui.components.Disclaimer
+import com.cavin.confluence.core.ui.components.GlassCard
+import com.cavin.confluence.core.ui.components.MiniSparkline
+import com.cavin.confluence.core.ui.components.PriceText
+import com.cavin.confluence.core.ui.components.PriceTextVariant
+import com.cavin.confluence.core.ui.components.SnapshotBadge
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
 import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
@@ -48,10 +55,10 @@ import com.cavin.confluence.core.ui.theme.Spacing
 import com.cavin.confluence.data.fake.FakeFixtures
 import com.cavin.confluence.data.model.HealthStatus
 import java.util.Locale
+import kotlin.math.sin
 
 /**
- * Home hub — futuristic glass dashboard (Phase 2 revision).
- * Insight only; no Buy/Sell CTAs.
+ * Home hub — Futuristic Terminal. Dock owns Chart/Alerts; no NAVIGATE stack.
  */
 @Composable
 fun HomeRoute(
@@ -81,7 +88,6 @@ fun HomeScreen(
     onRetry: () -> Unit,
 ) {
     val spacing = ConfluenceThemeAccess.spacing
-    val chartColors = ConfluenceThemeAccess.chartColors
 
     Scaffold(
         topBar = {
@@ -92,11 +98,12 @@ fun HomeScreen(
                             "Confluence",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold,
+                            color = ConfluenceColors.TextPrimary,
                         )
                         Text(
                             "BTC insight hub",
                             style = MaterialTheme.typography.labelSmall,
-                            color = ConfluenceColors.OnSurfaceMuted,
+                            color = ConfluenceColors.Slate,
                         )
                     }
                 },
@@ -107,8 +114,8 @@ fun HomeScreen(
                             badge = {
                                 if (badgeCount > 0) {
                                     Badge(
-                                        containerColor = ConfluenceColors.Accent,
-                                        contentColor = ConfluenceColors.OnAccent,
+                                        containerColor = ConfluenceColors.CyberCyan,
+                                        contentColor = ConfluenceColors.Void,
                                     ) { Text(badgeCount.toString()) }
                                 }
                             },
@@ -116,29 +123,54 @@ fun HomeScreen(
                             Icon(
                                 imageVector = Icons.Outlined.Notifications,
                                 contentDescription = "Insight alerts",
-                                tint = ConfluenceColors.Primary,
+                                tint = ConfluenceColors.CyberCyan,
                             )
                         }
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,
-                            contentDescription = "Settings placeholder",
-                            tint = ConfluenceColors.OnSurfaceMuted,
+                            contentDescription = "Settings",
+                            tint = ConfluenceColors.Slate,
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = ConfluenceColors.Background,
+                    containerColor = ConfluenceColors.Void,
                 ),
             )
         },
-        containerColor = ConfluenceColors.Background,
+        containerColor = ConfluenceColors.Void,
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .drawBehind {
+                    // Faint grid + soft cyan radial wash behind hero
+                    val step = 48f
+                    val grid = ConfluenceColors.Grid
+                    var x = 0f
+                    while (x < size.width) {
+                        drawLine(grid, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1f)
+                        x += step
+                    }
+                    var y = 0f
+                    while (y < size.height) {
+                        drawLine(grid, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
+                        y += step
+                    }
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            listOf(
+                                ConfluenceColors.CyberCyan.copy(alpha = 0.08f),
+                                ConfluenceColors.Void.copy(alpha = 0f),
+                            ),
+                        ),
+                        radius = size.minDimension * 0.55f,
+                        center = Offset(size.width * 0.5f, size.height * 0.28f),
+                    )
+                }
                 .padding(horizontal = spacing.lg),
         ) {
             when (state) {
@@ -148,11 +180,7 @@ fun HomeScreen(
                 is HomeUiState.Ready -> ReadyContent(
                     state = state,
                     spacing = spacing,
-                    bull = chartColors.bull,
-                    bear = chartColors.bear,
                     onOpenChart = onOpenChart,
-                    onOpenAlerts = onOpenAlerts,
-                    onOpenSettings = onOpenSettings,
                 )
             }
         }
@@ -163,111 +191,83 @@ fun HomeScreen(
 private fun ReadyContent(
     state: HomeUiState.Ready,
     spacing: Spacing,
-    bull: Color,
-    bear: Color,
     onOpenChart: () -> Unit,
-    onOpenAlerts: () -> Unit,
-    onOpenSettings: () -> Unit,
 ) {
     val quote = state.quote
-    val pct = quote.percentChange
-    val pctColor = when {
-        pct == null -> ConfluenceColors.OnSurfaceMuted
-        pct >= 0 -> bull
-        else -> bear
-    }
-    val pctText = pct?.let {
-        String.format(Locale.US, "%+.2f%%", it)
-    } ?: "—%"
+    val spark = rememberSparkFromPrice(quote.lastPrice, quote.percentChange)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = spacing.md),
-        verticalArrangement = Arrangement.spacedBy(spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(spacing.md),
     ) {
-        Column {
-            AppSectionLabel("Market", accent = true)
-            AppCard(glow = AppCardGlow.Blue) {
-                Text(
-                    text = "BTC / USDT",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = ConfluenceColors.Primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.height(spacing.xs))
-                Text(
+        AppSectionLabel("Market", accent = true)
+        GlassCard(accentBorder = true, glow = true) {
+            Text(
+                text = "BTC / USDT",
+                style = MaterialTheme.typography.labelLarge,
+                color = ConfluenceColors.CyberCyan,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(spacing.xs))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(spacing.md),
+            ) {
+                PriceText(
                     text = formatPrice(quote.lastPrice),
-                    style = MaterialTheme.typography.displayLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = ConfluenceColors.OnBackground,
+                    variant = PriceTextVariant.Hero,
+                    cyanShadow = true,
+                    modifier = Modifier.weight(1f),
                 )
+                DeltaChip(percent = quote.percentChange)
+            }
+            Spacer(Modifier.height(spacing.sm))
+            MiniSparkline(values = spark)
+            Spacer(Modifier.height(spacing.sm))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+            ) {
+                SnapshotBadge()
+                FreshnessChip(
+                    status = quote.health.status,
+                    snapshot = quote.health.note?.startsWith("Historical snapshot") == true,
+                )
+            }
+            quote.health.note?.takeIf { it.isNotBlank() }?.let { note ->
                 Spacer(Modifier.height(spacing.sm))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(spacing.md),
-                ) {
-                    Text(
-                        text = pctText,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = pctColor,
-                    )
-                    FreshnessChip(
-                        status = quote.health.status,
-                        snapshot = quote.health.note?.startsWith("Historical snapshot") == true,
-                    )
-                }
-                quote.health.note?.takeIf { it.startsWith("Historical snapshot") }?.let { note ->
-                    Spacer(Modifier.height(spacing.sm))
-                    Text(
-                        text = note,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = ConfluenceColors.OnSurfaceMuted,
-                    )
-                }
-                Spacer(Modifier.height(spacing.md))
                 Text(
-                    text = "Insight only — never executes trades",
+                    text = note,
                     style = MaterialTheme.typography.labelSmall,
-                    color = ConfluenceColors.OnSurfaceMuted,
+                    color = ConfluenceColors.Slate,
                 )
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
-            AppSectionLabel("Navigate")
-            AppButton(
-                onClick = onOpenChart,
-                modifier = Modifier.fillMaxWidth(),
-                style = AppButtonStyle.Primary,
-            ) {
-                Icon(Icons.Outlined.ShowChart, contentDescription = null)
-                Spacer(Modifier.width(spacing.sm))
-                Text("Open chart")
-            }
+        ConfluenceMeter(
+            scoreBullish = 62,
+            awaiting = false,
+            onViewChart = onOpenChart,
+        )
 
-            AppButton(
-                onClick = onOpenAlerts,
-                modifier = Modifier.fillMaxWidth(),
-                style = AppButtonStyle.Secondary,
-            ) {
-                Text(
-                    if (state.unreadAlertCount > 0) {
-                        "Alerts (${state.unreadAlertCount} unread)"
-                    } else {
-                        "Alerts"
-                    },
-                )
-            }
+        Disclaimer(
+            modifier = Modifier.fillMaxWidth(),
+            text = "Advisory only · no buy/sell",
+        )
+    }
+}
 
-            AppButton(
-                onClick = onOpenSettings,
-                modifier = Modifier.fillMaxWidth(),
-                style = AppButtonStyle.Ghost,
-            ) {
-                Text("Settings (placeholder)")
-            }
+@Composable
+private fun rememberSparkFromPrice(last: Double, pct: Double?): List<Float> {
+    return remember(last, pct) {
+        val base = last.toFloat()
+        val drift = ((pct ?: -0.34) / 100.0).toFloat()
+        List(32) { i ->
+            val t = i / 31f
+            val wave = sin(t * 6.2f) * base * 0.004f
+            base * (1f - drift * (1f - t)) + wave
         }
     }
 }
@@ -287,20 +287,18 @@ fun FreshnessChip(status: HealthStatus, snapshot: Boolean = false) {
 @Composable
 private fun LoadingState() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        AppCard(glow = AppCardGlow.Blue, modifier = Modifier.padding(horizontal = 8.dp)) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                CircularProgressIndicator(color = ConfluenceColors.Primary)
-                Spacer(Modifier.height(12.dp))
+        GlassCard(accentBorder = true) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                CircularProgressIndicator(color = ConfluenceColors.CyberCyan)
+                Spacer(Modifier.height(Spacing.md))
                 Text(
                     "Loading market snapshot…",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Frozen Binance history when wired",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = ConfluenceColors.OnSurfaceMuted,
+                    color = ConfluenceColors.TextPrimary,
                 )
             }
         }
@@ -310,22 +308,15 @@ private fun LoadingState() {
 @Composable
 private fun EmptyState(onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        AppCard(glow = AppCardGlow.Orange, modifier = Modifier.padding(horizontal = 8.dp)) {
+        GlassCard(accentBorder = true) {
+            Text("No market data yet", style = MaterialTheme.typography.titleLarge, color = ConfluenceColors.TextPrimary)
+            Spacer(Modifier.height(Spacing.sm))
             Text(
-                "Empty",
-                style = MaterialTheme.typography.labelSmall,
-                color = ConfluenceColors.OnSurfaceMuted,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text("No market data yet", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "No BTC/USDT snapshot available yet. Retry after assets or API are ready.",
+                "No BTC/USDT snapshot available yet.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = ConfluenceColors.OnSurfaceMuted,
+                color = ConfluenceColors.Slate,
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(Spacing.lg))
             AppButton(onClick = onRetry, style = AppButtonStyle.Secondary) { Text("Retry") }
         }
     }
@@ -334,18 +325,11 @@ private fun EmptyState(onRetry: () -> Unit) {
 @Composable
 private fun ErrorState(message: String, onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        AppCard(glow = AppCardGlow.Orange, modifier = Modifier.padding(horizontal = 8.dp)) {
-            Text(
-                "Error",
-                style = MaterialTheme.typography.labelSmall,
-                color = ConfluenceColors.OnSurfaceMuted,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text("Something went wrong", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
-            Text(message, style = MaterialTheme.typography.bodyMedium, color = ConfluenceColors.Error)
-            Spacer(Modifier.height(16.dp))
+        GlassCard(accentBorder = true) {
+            Text("Something went wrong", style = MaterialTheme.typography.titleLarge, color = ConfluenceColors.TextPrimary)
+            Spacer(Modifier.height(Spacing.sm))
+            Text(message, style = MaterialTheme.typography.bodyMedium, color = ConfluenceColors.Rose)
+            Spacer(Modifier.height(Spacing.lg))
             AppButton(onClick = onRetry, style = AppButtonStyle.Secondary) { Text("Retry") }
         }
     }
@@ -354,7 +338,7 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 private fun formatPrice(price: Double): String =
     String.format(Locale.US, "$%,.2f", price)
 
-@Preview(showBackground = true, backgroundColor = 0xFF070B12)
+@Preview(showBackground = true, backgroundColor = 0xFF07090E)
 @Composable
 private fun HomeReadyPreview() {
     ConfluenceTheme {
