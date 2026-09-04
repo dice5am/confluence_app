@@ -135,6 +135,8 @@ fun ChartScreen(
                     text = buildString {
                         append("drawn ${state.candles.size}/${state.rawCandleCount}")
                         state.lastTfSwitchMs?.let { append(" · TF switch ${it}ms") }
+                        state.lastLiveAppendMs?.let { append(" · live ${it}ms") }
+                        if (state.usingFixtures) append(" · fixtures")
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

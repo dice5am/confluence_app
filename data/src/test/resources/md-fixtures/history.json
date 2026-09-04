@@ -1,0 +1,26 @@
+{
+  "venue": "binance",
+  "symbol": "BTCUSDT",
+  "timeframe": "1h",
+  "fromMs": 0,
+  "toMs": 9999999999999,
+  "effectiveFromMs": 0,
+  "truncated": false,
+  "candles": [
+    {
+      "venue": "binance",
+      "symbol": "BTCUSDT",
+      "timeframe": "1h",
+      "openTimeMs": 1725400800000,
+      "closeTimeMs": 1725404400000,
+      "open": 95000.0,
+      "high": 95100.0,
+      "low": 94900.0,
+      "close": 95050.0,
+      "volume": 12.5,
+      "isFinal": true,
+      "sourceTsMs": 1725404400000,
+      "ingestTsMs": 1725404401000
+    }
+  ]
+}
