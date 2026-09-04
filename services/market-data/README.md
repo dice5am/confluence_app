@@ -1,11 +1,12 @@
-# Market Data service (Phase 1)
+# Market Data service (Phase 1 + Phase 2 basic charts)
 
-Binance **public** REST + WS candle ingest + SQLite store + 1m gap-fill + health machine + **consumer APIs** (history / live SSE / bootstrap).
+Binance **public** REST + WS candle ingest + SQLite store + 1m gap-fill + health machine + **consumer APIs** (history / live SSE / bootstrap) + **multi-TF venue-native backfill/live** (MD-2.1–2.3).
 
-**Hard rules:** no trade execution, no API secrets, no venue merge, no Bybit adapter yet, no P2-P4.
+**Hard rules:** no trade execution, no API secrets, no venue merge, no Bybit adapter yet, no MD-2.5/2.6 VP, no P3/P4.
 **Deploy:** local/box only — **no VPS**.
 
-Contract: [docs/market-data/MD-1.1-candle-contract.md](../../docs/market-data/MD-1.1-candle-contract.md)
+Contract: [docs/market-data/MD-1.1-candle-contract.md](../../docs/market-data/MD-1.1-candle-contract.md)  
+TF policy: [docs/market-data/MD-2.1-tf-policy.md](../../docs/market-data/MD-2.1-tf-policy.md) (all 7 TFs **venue-native**; no silent 1m rollup)
 
 ## Layout
 
@@ -21,6 +22,10 @@ Contract: [docs/market-data/MD-1.1-candle-contract.md](../../docs/market-data/MD
 | `src/store/candle-store.ts` | MD-1.4 SQLite candle store (upsert + range query) |
 | `src/gap/` | MD-1.5 1m gap detect + REST fill into store |
 | `src/health/` | MD-1.6 health state machine (`ok\|degraded\|stale\|disconnected`) |
+| `src/policy/` | MD-2.1 venue-native TF policy |
+| `src/binance/weight-budget.ts` | MD-2.2 shared REST weight gate (backfill + gap-fill) |
+| `src/backfill/` | MD-2.2 multi-TF REST → CandleStore |
+| `src/live/multi-tf-ingest.ts` | MD-2.3 configurable multi-TF live WS |
 | `fixtures/` | Offline closed candles + health samples for Alerts |
 | `data/` | Local SQLite file (`candles.sqlite`) — gitignored |
 | `Dockerfile` / `docker-compose.yml` | **Local/box compose only** |
@@ -52,7 +57,8 @@ curl "http://127.0.0.1:8080/v1/candles?symbol=BTCUSDT&timeframe=1m&fromMs=0&toMs
 Optional live Binance public WS ingest (local only):
 
 ```bash
-ENABLE_LIVE_INGEST=1 LIVE_TIMEFRAMES=1m,5m docker compose up --build
+ENABLE_LIVE_INGEST=1 docker compose up --build
+# subset: LIVE_TIMEFRAMES=1m,5m,15m ENABLE_LIVE_INGEST=1 docker compose up --build
 ```
 
 There is **no** VPS deploy path, host SSH, or remote compose target in this scaffold.
@@ -163,6 +169,51 @@ GET /v1/health
 
 Uses in-process `HealthMachine`.
 
+
+
+## Phase 2 — Multi-TF (MD-2.1 / 2.2 / 2.3)
+
+### MD-2.1 Venue-native TF policy
+
+All 7 TFs (`1m`…`1w`) map 1:1 to Binance kline intervals. Consumer series are **never** rolled up from `1m`. See the policy doc linked above; code: `src/policy/tf-policy.ts`.
+
+### MD-2.2 Multi-TF REST backfill
+
+```ts
+import {
+  CandleStore,
+  backfillAllTimeframes,
+  RestWeightBudget,
+} from '@confluence/market-data';
+
+const store = new CandleStore({ dbPath });
+const budget = new RestWeightBudget(); // shared with gap-fill
+await backfillAllTimeframes({
+  store,
+  weightBudget: budget,
+  maxBarsPerTf: 500,
+  // fetchKlines: mock in tests
+});
+```
+
+Weight gate: each klines page costs weight `2`; soft reserve is held for MD-1.5 gap-fill (`allowReserve`). Default concurrency is `1`.
+
+### MD-2.3 Multi-TF live klines
+
+Subscribe **only** TFs in use (configurable). Forming + final upsert via `LiveCandleHub` and update `HealthMachine` lastSource / activeTimeframes.
+
+```bash
+ENABLE_LIVE_INGEST=1 LIVE_TIMEFRAMES=1m,5m,15m,1h docker compose up --build
+```
+
+```ts
+import { startMultiTfLiveIngest } from '@confluence/market-data';
+const handle = startMultiTfLiveIngest({
+  hub, health, timeframes: ['1m', '5m', '1h'],
+});
+// handle.stop()
+```
+
 ## Alerts fixture paths
 
 Offline golden-vector inputs for Alerts (relative to `services/market-data/`):
@@ -185,3 +236,40 @@ Offline golden-vector inputs for Alerts (relative to `services/market-data/`):
 - `fixtures/health/disconnected.json`
 
 See also [fixtures/README.md](./fixtures/README.md).
+
+
+## Multi-TF (MD-2.1 / 2.2 / 2.3)
+
+Policy doc: [docs/market-data/MD-2.1-tf-policy.md](../../docs/market-data/MD-2.1-tf-policy.md)
+
+- **MD-2.1** — all 7 TFs (`1m`…`1w`) are **venue-native** Binance klines. Code: `policy/tf-policy.ts`. No silent 1m→higher rollup.
+- **MD-2.2** — `backfillTimeframes` / `backfillAllTimeframes` pull native REST klines into `CandleStore`, sequential by default, gated by `RestWeightBudget` (shared with 1m gap-fill).
+- **MD-2.3** — `startMultiTfLiveIngest` (also used by `startLiveIngest`) subscribes forming+final for a configurable TF set (default **all 7** via `LIVE_TIMEFRAMES` / `TIMEFRAMES`), upserts via `LiveCandleHub`, ticks health `lastSourceTsMs` / `activeTimeframes`.
+
+```ts
+import {
+  CandleStore,
+  backfillAllTimeframes,
+  startMultiTfLiveIngest,
+  LiveCandleHub,
+  HealthMachine,
+  RestWeightBudget,
+} from '@confluence/market-data';
+
+const store = new CandleStore({ dbPath });
+const health = new HealthMachine({ venue: 'binance', symbol: 'BTCUSDT' });
+const hub = new LiveCandleHub({ store, health });
+
+await backfillAllTimeframes({
+  store,
+  maxBarsPerTf: 500,
+  // fetchKlines: mock in tests
+});
+
+const live = startMultiTfLiveIngest({
+  hub,
+  health,
+  timeframes: ['1m', '5m', '15m', '1h', '4h', '1d', '1w'],
+});
+// live.stop()
+```

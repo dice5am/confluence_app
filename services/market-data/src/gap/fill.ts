@@ -2,6 +2,11 @@ import {
   fetchKlinesPaginated,
   type PaginateKlinesOptions,
 } from '../binance/rest.js';
+import {
+  KLINES_REQUEST_WEIGHT,
+  RestWeightBudget,
+  getSharedRestWeightBudget,
+} from '../binance/weight-budget.js';
 import type { CandleStore } from '../store/candle-store.js';
 import type { Candle, Venue } from '../types/candle.js';
 import {
@@ -26,6 +31,11 @@ export interface FillGapsOptions extends DetectGapsOptions {
   rest?: Omit<PaginateKlinesOptions, 'timeframe' | 'symbol' | 'startTimeMs' | 'endTimeMs' | 'maxBars'>;
   /** Only binance is supported (existing REST adapter). */
   venue: Venue;
+  /**
+   * Shared with MD-2.2 multi-TF backfill. Gap-fill uses allowReserve so
+   * it can spend the soft reserve band and avoid racing backfill into 429.
+   */
+  weightBudget?: RestWeightBudget;
 }
 
 export interface FillGapsResult extends DetectGapsResult {
@@ -56,9 +66,11 @@ export async function fillOneMinuteGaps(
   }
 
   const fetchFn = opts.fetchKlines ?? fetchKlinesPaginated;
+  const budget = opts.weightBudget ?? getSharedRestWeightBudget();
   const filled: Candle[] = [];
 
   for (const range of detected.ranges) {
+    await budget.acquire(KLINES_REQUEST_WEIGHT, { allowReserve: true });
     const page = await fetchFn({
       ...opts.rest,
       symbol: opts.symbol,

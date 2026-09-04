@@ -1,5 +1,6 @@
 /**
  * Market-data HTTP consumer APIs (MD-1.7 / 1.8 / 1.9) + health.
+ * Phase 2: multi-TF live ingest via startMultiTfLiveIngest (MD-2.3).
  *
  * Local docker compose only – no VPS / host / SSH deploy paths.
  *
@@ -22,7 +23,7 @@ import {
   planBootstrapThenSubscribe,
 } from './api/index.js';
 import type { Timeframe } from './types/candle.js';
-import { BinanceKlineWsClient } from './binance/ws.js';
+import { startMultiTfLiveIngest } from './live/multi-tf-ingest.js';
 import { TIMEFRAMES } from './types/candle.js';
 
 const PORT = Number(process.env.PORT ?? 8080);
@@ -280,49 +281,21 @@ function handleBootstrapPlan(
   });
 }
 
-/** Optional live Binance WS → hub ingest (local/box only; no secrets). */
+/** Optional live Binance WS → hub ingest (local/box only; no secrets). MD-2.3 multi-TF. */
 export function startLiveIngest(
   deps: ServerDeps,
   options?: { timeframes?: readonly Timeframe[]; symbol?: string },
-): { stop: () => void } {
-  const timeframes = options?.timeframes ?? (['1m'] as const);
-  const symbol = options?.symbol ?? 'BTCUSDT';
-  const clients: BinanceKlineWsClient[] = [];
-
-  deps.health.setFeedConnected(false);
-  deps.health.setNote('connecting live Binance public WS');
-
-  for (const timeframe of timeframes) {
-    const client = new BinanceKlineWsClient({
-      symbol,
-      timeframe,
-      onCandle: (candle) => {
-        deps.hub.ingest(candle);
-      },
-      onStatus: (status) => {
-        if (status === 'open') {
-          deps.health.setFeedConnected(true);
-          deps.health.setNote('live Binance public WS connected');
-          deps.health.setActiveTimeframes([...timeframes]);
-        } else if (status === 'closed' || status === 'reconnecting') {
-          deps.health.setFeedConnected(false);
-          deps.health.setNote(`live WS ${status}`);
-        }
-      },
-      onError: (err) => {
-        deps.health.setNote(`live WS error: ${err.message}`);
-      },
-    });
-    client.start();
-    clients.push(client);
-  }
-
+): { stop: () => void; subscribedTimeframes: () => Timeframe[] } {
+  const timeframes = options?.timeframes ?? TIMEFRAMES;
+  const handle = startMultiTfLiveIngest({
+    hub: deps.hub,
+    health: deps.health,
+    symbol: options?.symbol ?? 'BTCUSDT',
+    timeframes,
+  });
   return {
-    stop: () => {
-      for (const c of clients) c.stop();
-      deps.health.setFeedConnected(false);
-      deps.health.setNote('live ingest stopped');
-    },
+    stop: () => handle.stop(),
+    subscribedTimeframes: () => handle.subscribedTimeframes(),
   };
 }
 
@@ -342,10 +315,10 @@ if (isMainModule()) {
   let ingestStop: (() => void) | undefined;
 
   if (process.env.ENABLE_LIVE_INGEST === '1') {
-    const tfs = (process.env.LIVE_TIMEFRAMES ?? '1m')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean) as Timeframe[];
+    const raw = process.env.LIVE_TIMEFRAMES?.trim();
+    const tfs = (raw
+      ? raw.split(',').map((s) => s.trim()).filter(Boolean)
+      : [...TIMEFRAMES]) as Timeframe[];
     const handle = startLiveIngest(deps, { timeframes: tfs });
     ingestStop = handle.stop;
   }
