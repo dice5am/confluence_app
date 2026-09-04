@@ -27,7 +27,7 @@ cd /workspace/confluence_app
 | Item | Note |
 |------|------|
 | Settings contents | Placeholder route only — **TODO(product)** |
-| Offline O1/O2/O3 | Undecided per MOB-1.6 — not implemented |
+| Offline | **O1 locked**; MOB-1.6 decision spike **SKIPPED** (see `docs/mobile/MOB-1.6-offline-decision-SKIPPED.md`). Impl = MOB-4.6 |
 | Real Market Data base URL | Arch-B API host not wired — fixtures only |
 | Alert payload schema | Inbox is stub until Alerts lane (MOB-4.1) |
 | Default TF persistence | Chart stub accepts `tf`; last-used persist is MOB-2.3 |
@@ -38,3 +38,12 @@ cd /workspace/confluence_app
 - No Compose Canvas candle engine (MOB-2.1+)
 - Alerts docs under `docs/contracts/alerts/` untouched by this scaffold
 - MD `services/` docker scaffold is separate (not part of MOB P1)
+
+
+## Follow-ups landed (post PR #1)
+
+| ID | Status |
+|----|--------|
+| MOB-1.5.1 | DTO / wire mapping unit tests in `:data` (`src/test`) |
+| MOB-1.6 | **SKIPPED** — O1 locked; spike obsolete |
+| MOB-1.7 | Safety copy pass doc — no CTA fixes needed |
