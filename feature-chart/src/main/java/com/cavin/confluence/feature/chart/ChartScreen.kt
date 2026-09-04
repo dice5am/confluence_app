@@ -182,12 +182,30 @@ fun ChartScreen(
                 }
             }
 
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    "Y · price (live)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ConfluenceColors.Primary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "X · time · ${state.timeframe.wire}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ConfluenceColors.Accent,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(ConfluenceColors.Surface),
+                    .background(ConfluenceColors.Surface)
+                    .padding(2.dp),
             ) {
                 when {
                     state.loading && state.candles.isEmpty() ->
@@ -201,6 +219,11 @@ fun ChartScreen(
                         seriesKey = "${state.venue.wire}:${state.timeframe.wire}",
                         modifier = Modifier.fillMaxSize(),
                         onCrosshairCandle = onCrosshair,
+                    )
+                    else -> Text(
+                        "No series for ${state.timeframe.wire}",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = ConfluenceColors.OnSurfaceMuted,
                     )
                 }
             }
