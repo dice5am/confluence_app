@@ -4,3 +4,7 @@ coverage/
 .env
 .env.*
 *.log
+# Local SQLite candle DB (MD-1.4)
+data/
+*.sqlite
+*.sqlite-*

@@ -2,7 +2,7 @@
   "name": "@confluence/market-data",
   "version": "0.1.0",
   "private": true,
-  "description": "Phase 1 Binance public market-data scaffold (REST + WS + offline Docker). No secrets, no trade execution.",
+  "description": "Phase 1 Binance public market-data + candle store (REST + WS + SQLite). No secrets, no trade execution.",
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -16,13 +16,15 @@
     "node": ">=20"
   },
   "dependencies": {
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "better-sqlite3": "^11.10.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
     "@types/ws": "^8.18.1",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
-    "vitest": "^3.1.4"
+    "vitest": "^3.1.4",
+    "@types/better-sqlite3": "^7.6.13"
   }
 }
