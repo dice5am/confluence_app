@@ -2,7 +2,7 @@
   "name": "@confluence/market-data",
   "version": "0.1.0",
   "private": true,
-  "description": "Binance public market-data: REST/WS, SQLite store, gap-fill, health, consumers, multi-TF venue-native backfill/live (MD-2.1–2.3). No secrets, no trade execution.",
+  "description": "Binance public market-data: REST/WS, SQLite store, gap-fill, health, consumers, multi-TF, pagination/resume, rate-limit/reconnect (MD-2.1–2.4, 2.7–2.9). No secrets, no trade execution.",
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",

@@ -5,6 +5,7 @@ import {
   timeframeToBinanceInterval,
   type BinanceKlineRow,
 } from './map.js';
+import { withRestRetry, type RestRetryPolicyOptions } from './reconnect-policy.js';
 
 export const BINANCE_REST_BASE = 'https://api.binance.com';
 
@@ -21,6 +22,11 @@ export interface FetchKlinesOptions {
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
   nowMs?: () => number;
+  /**
+   * MD-2.8: retry/backoff policy for 429/418/5xx/timeout.
+   * Pass `{ maxRetries: 0 }` to disable retries (tests).
+   */
+  retry?: RestRetryPolicyOptions | false;
 }
 
 const DEFAULT_LIMIT = 1000;
@@ -48,7 +54,7 @@ async function fetchWithTimeout(
   }
 }
 
-/** Single-page klines fetch. */
+/** Single-page klines fetch (MD-2.8: retries 429/418/5xx/timeout with backoff). */
 export async function fetchKlinesPage(opts: FetchKlinesOptions): Promise<Candle[]> {
   const symbol = opts.symbol ?? 'BTCUSDT';
   const interval = timeframeToBinanceInterval(opts.timeframe);
@@ -67,29 +73,48 @@ export async function fetchKlinesPage(opts: FetchKlinesOptions): Promise<Candle[
   if (opts.endTimeMs !== undefined) params.set('endTime', String(opts.endTimeMs));
 
   const url = `${baseUrl}/api/v3/klines?${params.toString()}`;
-  const res = await fetchWithTimeout(url, { timeoutMs, fetchImpl });
 
-  if (!res.ok) {
-    const snippet = (await res.text().catch(() => '')).slice(0, 200);
-    throw classifyHttpStatus(res.status, snippet);
+  const once = async (): Promise<Candle[]> => {
+    const res = await fetchWithTimeout(url, { timeoutMs, fetchImpl });
+
+    if (!res.ok) {
+      const snippet = (await res.text().catch(() => '')).slice(0, 200);
+      const headerRetry = res.headers.get('retry-after');
+      let retryAfterMs: number | undefined;
+      if (headerRetry) {
+        const asNum = Number(headerRetry);
+        if (Number.isFinite(asNum)) {
+          // Retry-After may be seconds (typical) or ms if huge
+          retryAfterMs = asNum > 1_000_000 ? asNum : asNum * 1000;
+        }
+      }
+      throw classifyHttpStatus(res.status, snippet, { retryAfterMs });
+    }
+
+    let rows: BinanceKlineRow[];
+    try {
+      rows = (await res.json()) as BinanceKlineRow[];
+    } catch (err) {
+      throw new BinanceApiError('PARSE', 'Failed to parse Binance klines JSON', {
+        cause: err,
+      });
+    }
+
+    const ingestTsMs = nowMs();
+    return rows.map((row) =>
+      mapRestKlineToCandle(row, {
+        timeframe: opts.timeframe,
+        symbol,
+        ingestTsMs,
+        isFinal: true,
+      }),
+    );
+  };
+
+  if (opts.retry === false) {
+    return once();
   }
-
-  let rows: BinanceKlineRow[];
-  try {
-    rows = (await res.json()) as BinanceKlineRow[];
-  } catch (err) {
-    throw new BinanceApiError('PARSE', 'Failed to parse Binance klines JSON', { cause: err });
-  }
-
-  const ingestTsMs = nowMs();
-  return rows.map((row) =>
-    mapRestKlineToCandle(row, {
-      timeframe: opts.timeframe,
-      symbol,
-      ingestTsMs,
-      isFinal: true,
-    }),
-  );
+  return withRestRetry(once, opts.retry ?? {});
 }
 
 export interface PaginateKlinesOptions extends FetchKlinesOptions {

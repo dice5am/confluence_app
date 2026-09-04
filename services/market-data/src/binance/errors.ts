@@ -27,23 +27,34 @@ export class BinanceApiError extends Error {
   }
 }
 
-export function classifyHttpStatus(status: number, bodySnippet?: string): BinanceApiError {
+export function classifyHttpStatus(
+  status: number,
+  bodySnippet?: string,
+  opts?: { retryAfterMs?: number },
+): BinanceApiError {
+  const retryAfterMs = opts?.retryAfterMs;
   if (status === 429) {
     return new BinanceApiError('RATE_LIMIT_429', `Binance rate limit (429): ${bodySnippet ?? ''}`.trim(), {
       status,
+      retryAfterMs,
     });
   }
   if (status === 418) {
     return new BinanceApiError('IP_BAN_418', `Binance IP ban (418): ${bodySnippet ?? ''}`.trim(), {
       status,
+      retryAfterMs,
     });
   }
   if (status >= 500 && status <= 599) {
     return new BinanceApiError('SERVER_5XX', `Binance server error (${status}): ${bodySnippet ?? ''}`.trim(), {
       status,
+      retryAfterMs,
     });
   }
-  return new BinanceApiError('UNKNOWN', `Binance HTTP ${status}: ${bodySnippet ?? ''}`.trim(), { status });
+  return new BinanceApiError('UNKNOWN', `Binance HTTP ${status}: ${bodySnippet ?? ''}`.trim(), {
+    status,
+    retryAfterMs,
+  });
 }
 
 export function isTimeoutError(err: unknown): boolean {

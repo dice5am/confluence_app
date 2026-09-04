@@ -68,7 +68,11 @@ describe('fetchKlinesPage (offline fixtures)', () => {
     ] as const) {
       const fetchImpl = vi.fn(async () => new Response('nope', { status }));
       await expect(
-        fetchKlinesPage({ timeframe: '1m', fetchImpl: fetchImpl as unknown as typeof fetch }),
+        fetchKlinesPage({
+          timeframe: '1m',
+          fetchImpl: fetchImpl as unknown as typeof fetch,
+          retry: false, // MD-2.8: disable backoff for taxonomy unit test
+        }),
       ).rejects.toMatchObject({ code, status } satisfies Partial<BinanceApiError>);
     }
   });
@@ -84,6 +88,7 @@ describe('fetchKlinesPage (offline fixtures)', () => {
         timeframe: '1m',
         timeoutMs: 10,
         fetchImpl: fetchImpl as unknown as typeof fetch,
+        retry: false,
       }),
     ).rejects.toMatchObject({ code: 'TIMEOUT' });
   });

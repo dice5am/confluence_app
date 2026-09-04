@@ -25,7 +25,7 @@ export interface HealthMachineOptions {
 export class HealthMachine {
   private readonly venue: string;
   private readonly symbol: string;
-  private readonly expectedTimeframes: readonly Timeframe[];
+  private expectedTimeframes: readonly Timeframe[];
   private readonly nowMs: () => number;
 
   private lastSourceTsMs = 0;
@@ -64,6 +64,19 @@ export class HealthMachine {
   /** Replace the set of TFs currently receiving updates. */
   setActiveTimeframes(timeframes: readonly Timeframe[]): void {
     this.activeTimeframes = new Set(timeframes);
+  }
+
+  /**
+   * MD-2.9: set the TF set we expect to be live (in-use).
+   * Multi-TF ingest should set this to the subscribed set so a chart
+   * subset is not permanently `degraded` vs all 7 product TFs.
+   */
+  setExpectedTimeframes(timeframes: readonly Timeframe[]): void {
+    this.expectedTimeframes = [...timeframes];
+  }
+
+  getExpectedTimeframes(): Timeframe[] {
+    return [...this.expectedTimeframes];
   }
 
   /** Optional operator note attached to the health object. */

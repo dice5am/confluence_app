@@ -44,9 +44,13 @@ export {
   earliestAllowedOpenTimeMs,
   clampHistoryFromMs,
   queryClosedHistory,
+  nextHistoryPageQuery,
+  normalizeHistoryLimit,
   parseTimeframe,
   parseVenue,
   HistoryQueryError,
+  HISTORY_DEFAULT_LIMIT,
+  HISTORY_MAX_LIMIT,
   TIMEFRAME_MS,
   planBootstrapThenSubscribe,
   bootstrapThenSubscribe,
@@ -78,6 +82,21 @@ export {
   setSharedRestWeightBudget,
 } from './binance/weight-budget.js';
 export type { RestWeightBudgetOptions } from './binance/weight-budget.js';
+export {
+  computeWsReconnectDelayMs,
+  computeRestBackoffMs,
+  withRestRetry,
+  WS_INITIAL_BACKOFF_MS,
+  WS_MAX_BACKOFF_MS,
+  REST_INITIAL_BACKOFF_MS,
+  REST_MAX_BACKOFF_MS,
+  REST_MAX_RETRIES,
+  RATE_LIMIT_RECONNECT_POLICY_SUMMARY,
+} from './binance/reconnect-policy.js';
+export type {
+  BackoffOptions,
+  RestRetryPolicyOptions,
+} from './binance/reconnect-policy.js';
 export {
   backfillTimeframes,
   backfillAllTimeframes,

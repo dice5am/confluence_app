@@ -5,9 +5,13 @@ export {
 } from './depth.js';
 export {
   queryClosedHistory,
+  nextHistoryPageQuery,
+  normalizeHistoryLimit,
   parseTimeframe,
   parseVenue,
   HistoryQueryError,
+  HISTORY_DEFAULT_LIMIT,
+  HISTORY_MAX_LIMIT,
 } from './history.js';
 export type { HistoryQuery, HistoryResult } from './history.js';
 export {
