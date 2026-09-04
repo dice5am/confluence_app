@@ -1,0 +1,16 @@
+{
+  "status": "ok",
+  "lastSourceTsMs": 1788541200000,
+  "venue": "binance",
+  "symbol": "BTCUSDT",
+  "activeTimeframes": [
+    "1m",
+    "5m",
+    "15m",
+    "1h",
+    "4h",
+    "1d",
+    "1w"
+  ],
+  "note": "live updates flowing"
+}

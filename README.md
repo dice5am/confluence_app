@@ -75,3 +75,10 @@ If the Android SDK / JDK / Gradle wrapper binary are missing on the machine, see
 ## Safety copy
 
 UI strings are insight / advisory only. There are **no** Buy, Sell, or order-placement actions in this scaffold.
+
+## Market data service (Phase 1)
+
+Binance public REST/WS scaffold + local/box Docker only (live VPS deferred):
+[`services/market-data/README.md`](services/market-data/README.md)
+
+Closed-candle + health fixtures for Alerts: `services/market-data/fixtures/`

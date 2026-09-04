@@ -1,0 +1,12 @@
+# Local compose only — NO VPS deploy, no host/SSH targets.
+# Usage (from this directory):
+#   docker compose up --build
+# Then: curl http://127.0.0.1:8080/health
+services:
+  market-data:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+    restart: "no"
