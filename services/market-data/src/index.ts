@@ -16,3 +16,19 @@ export { BinanceKlineWsClient, BINANCE_WS_BASE } from './binance/ws.js';
 export { createServer } from './server.js';
 export { CandleStore } from './store/candle-store.js';
 export type { CandleRangeQuery, CandleStoreOptions } from './store/candle-store.js';
+export {
+  ONE_MINUTE_MS,
+  detectOneMinuteGaps,
+  missingToRanges,
+  fillOneMinuteGaps,
+} from './gap/index.js';
+export type {
+  DetectGapsOptions,
+  DetectGapsResult,
+  GapRange,
+  FetchKlinesFn,
+  FillGapsOptions,
+  FillGapsResult,
+} from './gap/index.js';
+export { HealthMachine, STALE_THRESHOLD_MS } from './health/index.js';
+export type { HealthMachineOptions } from './health/index.js';
