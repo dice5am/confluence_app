@@ -1,23 +1,19 @@
-# MD-1.10 — Offline Docker scaffold ONLY (no remote deploy).
-FROM python:3.12-slim
-
+# Local/box only — do NOT use for VPS / host / SSH deploy in Phase 1.
+FROM node:20-alpine AS build
 WORKDIR /app
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    MD_HOST=0.0.0.0 \
-    MD_PORT=8080 \
-    PYTHONPATH=/app/src
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
+COPY package.json package-lock.json* ./
+RUN npm install --ignore-scripts
+COPY tsconfig.json ./
 COPY src ./src
-COPY pyproject.toml README.md ./
+RUN npm run build && npm prune --omit=dev
 
+FROM node:20-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=8080
+COPY --from=build /app/package.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
 EXPOSE 8080
-
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')" || exit 1
-
-CMD ["python", "-m", "market_data"]
+USER node
+CMD ["node", "dist/server.js"]

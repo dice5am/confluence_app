@@ -1,4 +1,0 @@
-# Phase 1 scaffold — keep dependency-light.
-# Stdlib covers REST + HTTP server + unit tests.
-# Optional live WS (MD-1.3 runtime):
-websockets>=12.0,<14

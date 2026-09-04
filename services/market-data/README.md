@@ -1,86 +1,47 @@
-# Market Data Service (Phase 1 scaffold)
+# Market Data service (Phase 1 scaffold)
 
-Implements:
+Binance **public** REST + WS candle ingest scaffold + offline Docker health server.
 
-| ID | Scope |
-|----|--------|
-| **MD-1.1** | Candle field contract (types in `candle.py`) |
-| **MD-1.2** | Binance public REST klines → MD-1.1 candles |
-| **MD-1.3** | Binance public WS klines + reconnect/backoff skeleton |
-| **MD-1.10** | Offline Docker + `GET /health` HTTP scaffold |
+**Hard rules:** no trade execution, no API secrets, no venue merge, no Bybyt adapter yet, no P2–P4.
 
-**Hard rules:** no trade execution, no signed exchange endpoints, no API secrets, no venue merge (venue=`binance` only for now).
+Contract: [docs/market-data/MD-1.1-candle-contract.md](../../docs/market-data/MD-1.1-candle-contract.md)
 
 ## Layout
 
-```
-services/market-data/
-  src/market_data/
-    candle.py          # MD-1.1 types
-    errors.py          # 429 / 418 / 5xx / timeout
-    binance_rest.py    # REST klines + pagination
-    binance_ws.py      # WS subscribe + backoff
-    server.py          # GET /health (+ stub routes)
-  tests/               # unit tests (fixture JSON; no live net)
-  Dockerfile
-  docker-compose.yml
-```
+| Path | Purpose |
+|------|--------|
+| `src/binance/rest.ts` | Public klines REST + pagination |
+| `src/binance/ws.ts` | Public kline stream + reconnect/backoff skeleton |
+| `src/binance/map.ts` | Venue rows – MD-1.1 candles |
+| `src/binance/errors.ts` | Typed 429 / 418 / 5xx / timeout |
+| `src/server.ts` | GET /health |
+| `fixtures/` | Offline closed candles + health samples for Alerts |
+| `Dockerfile` / `docker-compose.yml` | **Local compose only** |
 
-## Run tests (no network)
-
-From this directory:
+## Run tests (offline)
 
 ```bash
 cd services/market-data
-PYTHONPATH=src python3 -m unittest discover -s tests -v
+pnp install
+npm test
 ```
 
 Optional live WS integration (skipped by default):
 
 ```bash
-pip install -r requirements.txt
-RUN_BINANCE_WS_INTEGRATION=1 PYTHONPATH=src python3 -m unittest tests.test_binance_ws.LiveWsIntegrationTests -v
+npm run test:integration
 ```
 
-## Run HTTP server locally (without Docker)
-
-```bash
-cd services/market-data
-PYTHONPATH=src python3 -m market_data
-# curl http://127.0.0.1:8080/health
-```
-
-## Docker Compose (local only)
-
-Requires Docker Desktop / Engine on your machine. **No VPS deploy.**
+## Local Docker only (NO VPS)
 
 ```bash
 cd services/market-data
 docker compose up --build
+curl http://127.0.0.1:8080/health
 ```
 
-Then:
+There is **no** VPS deploy path, host SSH, or remote compose target in this scaffold.
 
-```bash
-curl http://localhost:8080/health
-```
-
-Stub routes (501): `GET /v1/history`, `GET /v1/live` — reserved for later phases.
-
-## Candle mapping notes
-
-- REST closed rows → `isFinal=true`
-- WS `k.x=false` → forming (`isFinal=false`); `k.x=true` → closed (`isFinal=true`)
-- Timeframes: `1m,5m,15m,1h,4h,1d,1w` for `BTCUSDT` / venue `binance`
-
-## Out of scope (P2+)
-
-Bybit failover runtime, history store depth enforcement, live stream fan-out to Mobile/Alerts — stubs/comments only.
 ## Alerts fixtures
 
-Closed candles + health for ALT golden vectors:
-
-- `services/market-data/fixtures/candles/`
-- `services/market-data/fixtures/health/`
-
-See `services/market-data/fixtures/README.md`.
+See [fixtures/README.md](./fixtures/README.md) for golden-vector candle + health paths.
