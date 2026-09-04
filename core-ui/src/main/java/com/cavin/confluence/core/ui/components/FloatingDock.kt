@@ -58,7 +58,7 @@ fun FloatingDock(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = Spacing.lg, bottom = ConfluenceDimens.dockElevationGap),
+            .padding(start = Spacing.lg, end = Spacing.lg, bottom = ConfluenceDimens.dockElevationGap),
         contentAlignment = Alignment.Center,
     ) {
         Row(
