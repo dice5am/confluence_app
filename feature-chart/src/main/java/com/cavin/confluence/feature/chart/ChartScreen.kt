@@ -50,11 +50,12 @@ fun ChartRoute(
     alertId: String? = null,
     onBack: () -> Unit = {},
 ) {
-    val tf = timeframe?.takeIf { it.isNotBlank() }?.let {
+    val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as android.app.Application
+    val navTf = timeframe?.takeIf { it.isNotBlank() }?.let {
         runCatching { Timeframe.fromWire(it) }.getOrNull()
-    } ?: Timeframe.H1
-
-    val vm: ChartViewModel = viewModel(factory = ChartViewModel.factory(tf))
+    }
+    // Deep-link TF wins when present; else MOB-2.3 last-used / first-open 1h inside VM.
+    val vm: ChartViewModel = viewModel(factory = ChartViewModel.factory(app, navTf))
     val state by vm.uiState.collectAsStateWithLifecycle()
 
     ChartScreen(
@@ -129,6 +130,16 @@ fun ChartScreen(
             )
 
             OhlcReadout(candle = state.crosshair ?: state.candles.lastOrNull())
+            if (state.rawCandleCount > 0) {
+                Text(
+                    text = buildString {
+                        append("drawn ${state.candles.size}/${state.rawCandleCount}")
+                        state.lastTfSwitchMs?.let { append(" · TF switch ${it}ms") }
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Spacer(Modifier.height(8.dp))
 
             Box(
