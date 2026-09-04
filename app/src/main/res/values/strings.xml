@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Confluence</string>
+    <string name="insight_only_disclaimer">Insight only — never executes trades</string>
+</resources>
