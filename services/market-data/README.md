@@ -17,6 +17,8 @@ Contract: [docs/market-data/MD-1.1-candle-contract.md](../../docs/market-data/MD
 | `src/binance/errors.ts` | Typed 429 / 418 / 5xx / timeout |
 | `src/server.ts` | GET /health |
 | `src/store/candle-store.ts` | MD-1.4 SQLite candle store (upsert + range query) |
+| `src/gap/` | MD-1.5 1m gap detect + REST fill into store |
+| `src/health/` | MD-1.6 health state machine (`ok\|degraded\|stale\|disconnected`) |
 | `fixtures/` | Offline closed candles + health samples for Alerts |
 | `data/` | Local SQLite file (`candles.sqlite`) — gitignored |
 | `Dockerfile` / `docker-compose.yml` | **Local/box compose only** |
@@ -71,7 +73,45 @@ const closed = store.queryRange({
 store.close();
 ```
 
-Not in scope here: gap-fill (MD-1.5), health machine (MD-1.6), HTTP history/live APIs (MD-1.7–1.9).
+Not in scope here: HTTP history/live/bootstrap APIs (MD-1.7–1.9).
+
+## Gap detect + REST fill (MD-1.5)
+
+Detect missing `openTimeMs` steps on **1m** for a venue/symbol, fill via Binance public REST (`fetchKlinesPaginated`), upsert into `CandleStore`, and expose `gapCount` for health.
+
+```ts
+import { CandleStore, detectOneMinuteGaps, fillOneMinuteGaps } from '@confluence/market-data';
+
+const store = new CandleStore({ dbPath });
+const gaps = detectOneMinuteGaps(store, { venue: 'binance', symbol: 'BTCUSDT' });
+// gaps.gapCount / gaps.missingOpenTimeMs / gaps.ranges
+
+const filled = await fillOneMinuteGaps({
+  store,
+  venue: 'binance',
+  symbol: 'BTCUSDT',
+  // fetchKlines: mock in tests; defaults to live REST
+});
+```
+
+Offline unit tests mock REST + use a temp SQLite store.
+
+## Health machine (MD-1.6)
+
+In-process MD-1.1 health status with priority: **disconnected** > **stale** (>60s no update) > **degraded** (partial TF or `gapCount > 0`) > **ok**.
+
+```ts
+import { HealthMachine, STALE_THRESHOLD_MS } from '@confluence/market-data';
+
+const hm = new HealthMachine({ venue: 'binance', symbol: 'BTCUSDT' });
+hm.setFeedConnected(true);
+hm.recordUpdate(Date.now(), '1m');
+hm.setActiveTimeframes(['1m', '5m', '15m', '1h', '4h', '1d', '1w']);
+hm.setGapCount(gaps.gapCount);
+const health = hm.getHealth(); // { status, lastSourceTsMs, venue, symbol, ... }
+```
+
+Does not add HTTP history/live routes (those are MD-1.7–1.9).
 
 ## Alerts fixture paths
 
