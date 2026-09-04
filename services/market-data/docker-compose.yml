@@ -1,6 +1,8 @@
 # Local compose only — NO VPS deploy, no host/SSH targets.
 # Usage (from this directory):
 #   docker compose up --build
+# Optional live ingest (public WS only):
+#   ENABLE_LIVE_INGEST=1 LIVE_TIMEFRAMES=1m docker compose up --build
 # Then: curl http://127.0.0.1:8080/health
 services:
   market-data:
@@ -9,4 +11,6 @@ services:
       - "8080:8080"
     environment:
       PORT: "8080"
+      ENABLE_LIVE_INGEST: "${ENABLE_LIVE_INGEST:-0}"
+      LIVE_TIMEFRAMES: "${LIVE_TIMEFRAMES:-1m}"
     restart: "no"

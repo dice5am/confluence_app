@@ -1,6 +1,6 @@
 # Market Data service (Phase 1)
 
-Binance **public** REST + WS candle ingest + SQLite store + 1m gap-fill + health machine.
+Binance **public** REST + WS candle ingest + SQLite store + 1m gap-fill + health machine + **consumer APIs** (history / live SSE / bootstrap).
 
 **Hard rules:** no trade execution, no API secrets, no venue merge, no Bybit adapter yet, no P2-P4.
 **Deploy:** local/box only — **no VPS**.
@@ -15,7 +15,9 @@ Contract: [docs/market-data/MD-1.1-candle-contract.md](../../docs/market-data/MD
 | `src/binance/ws.ts` | Public kline stream + reconnect/backoff skeleton |
 | `src/binance/map.ts` | Venue rows to MD-1.1 candles |
 | `src/binance/errors.ts` | Typed 429 / 418 / 5xx / timeout |
-| `src/server.ts` | GET /health |
+| `src/server.ts` | HTTP: health, history, live SSE, bootstrap plan |
+| `src/api/` | MD-1.7 history + MD-1.9 bootstrap helpers + depth caps |
+| `src/live/` | MD-1.8 live hub (exactly-one final per bar key) |
 | `src/store/candle-store.ts` | MD-1.4 SQLite candle store (upsert + range query) |
 | `src/gap/` | MD-1.5 1m gap detect + REST fill into store |
 | `src/health/` | MD-1.6 health state machine (`ok\|degraded\|stale\|disconnected`) |
@@ -44,6 +46,13 @@ cd services/market-data
 docker compose up --build
 # or detached: docker compose up --build -d
 curl http://127.0.0.1:8080/health
+curl "http://127.0.0.1:8080/v1/candles?symbol=BTCUSDT&timeframe=1m&fromMs=0&toMs=9999999999999"
+```
+
+Optional live Binance public WS ingest (local only):
+
+```bash
+ENABLE_LIVE_INGEST=1 LIVE_TIMEFRAMES=1m,5m docker compose up --build
 ```
 
 There is **no** VPS deploy path, host SSH, or remote compose target in this scaffold.
@@ -109,7 +118,50 @@ hm.setGapCount(gaps.gapCount);
 const health = hm.getHealth(); // { status, lastSourceTsMs, venue, symbol, ... }
 ```
 
-Not in scope here: HTTP history/live/bootstrap consumer APIs (MD-1.7–1.9).
+
+## Consumer APIs (MD-1.7 / 1.8 / 1.9)
+
+### MD-1.7 — History GET
+
+```http
+GET /v1/candles?symbol=BTCUSDT&timeframe=1m&fromMs=&toMs=&venue=binance
+```
+
+- Returns **closed only** (`isFinal=true`), ordered by `openTimeMs` ascending
+- Reads from `CandleStore` (never raw exchange payloads)
+- Respects MD-1.1 depth caps (`1m` 60d, `5m` 180d, `15m` 1y, higher TFs unbounded): older `fromMs` is clamped; response includes `truncated` + `effectiveFromMs`
+
+### MD-1.8 — Live forming + final close (SSE)
+
+```http
+GET /v1/candles/stream?symbol=BTCUSDT&timeframe=1m
+GET /v1/candles/stream?finalsOnly=1
+```
+
+- `event: health` on connect; `event: candle` for forming (`isFinal=false`) and **exactly one** final per bar key
+- Wire: Binance WS mapper → `LiveCandleHub.ingest` → store + SSE subscribers
+- **Alerts path:** finals only (`finalsOnly=1` or filter `isFinal===true`). Charts may paint forming.
+
+### MD-1.9 — Bootstrap-then-subscribe
+
+1. Subscribe live (`GET /v1/candles/stream`)
+2. History GET closed bars with overlap into now (≥2 bar lengths)
+3. Upsert by primary key — seam dups collapse; no hole
+
+```http
+GET /v1/bootstrap-plan?timeframe=1m&lookbackMs=3600000
+```
+
+Library helpers: `planBootstrapThenSubscribe`, `bootstrapThenSubscribe` (see tests).
+
+### Health
+
+```http
+GET /health
+GET /v1/health
+```
+
+Uses in-process `HealthMachine`.
 
 ## Alerts fixture paths
 
