@@ -3,6 +3,7 @@ package com.cavin.confluence.feature.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,15 +16,12 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -37,6 +35,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.cavin.confluence.core.ui.components.AppButton
+import com.cavin.confluence.core.ui.components.AppButtonStyle
+import com.cavin.confluence.core.ui.components.AppCard
+import com.cavin.confluence.core.ui.components.AppCardGlow
+import com.cavin.confluence.core.ui.components.AppStatusChip
+import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
 import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
 import com.cavin.confluence.core.ui.theme.Spacing
@@ -45,7 +49,8 @@ import com.cavin.confluence.data.model.HealthStatus
 import java.util.Locale
 
 /**
- * Home hub (MOB-1.4): BTC/USDT glance — insight only, no Buy/Sell CTAs.
+ * Home hub — futuristic glass dashboard (Phase 2 revision).
+ * Insight only; no Buy/Sell CTAs.
  */
 @Composable
 fun HomeRoute(
@@ -79,20 +84,37 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Confluence") },
+                title = {
+                    Column {
+                        Text(
+                            "Confluence",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            "BTC insight hub",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ConfluenceColors.OnSurfaceMuted,
+                        )
+                    }
+                },
                 actions = {
                     val badgeCount = (state as? HomeUiState.Ready)?.unreadAlertCount ?: 0
                     IconButton(onClick = onOpenAlerts) {
                         BadgedBox(
                             badge = {
                                 if (badgeCount > 0) {
-                                    Badge { Text(badgeCount.toString()) }
+                                    Badge(
+                                        containerColor = ConfluenceColors.Accent,
+                                        contentColor = ConfluenceColors.OnAccent,
+                                    ) { Text(badgeCount.toString()) }
                                 }
                             },
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Notifications,
                                 contentDescription = "Insight alerts",
+                                tint = ConfluenceColors.Primary,
                             )
                         }
                     }
@@ -100,16 +122,16 @@ fun HomeScreen(
                         Icon(
                             imageVector = Icons.Outlined.Settings,
                             contentDescription = "Settings placeholder",
+                            tint = ConfluenceColors.OnSurfaceMuted,
                         )
                     }
-                    // TODO(product): real settings content beyond placeholder route
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = ConfluenceColors.Background,
                 ),
             )
         },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = ConfluenceColors.Background,
     ) { padding ->
         Box(
             modifier = Modifier
@@ -148,7 +170,7 @@ private fun ReadyContent(
     val quote = state.quote
     val pct = quote.percentChange
     val pctColor = when {
-        pct == null -> MaterialTheme.colorScheme.onSurfaceVariant
+        pct == null -> ConfluenceColors.OnSurfaceMuted
         pct >= 0 -> bull
         else -> bear
     }
@@ -160,47 +182,54 @@ private fun ReadyContent(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(spacing.md),
     ) {
-        Text(
-            text = "BTC / USDT",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = "Insight only — never executes trades",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        AppCard(glow = AppCardGlow.Blue) {
+            Text(
+                text = "BTC / USDT",
+                style = MaterialTheme.typography.labelLarge,
+                color = ConfluenceColors.Primary,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(spacing.xs))
+            Text(
+                text = formatPrice(quote.lastPrice),
+                style = MaterialTheme.typography.displayLarge,
+                fontWeight = FontWeight.Bold,
+                color = ConfluenceColors.OnBackground,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(spacing.md),
+            ) {
+                Text(
+                    text = pctText,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = pctColor,
+                )
+                FreshnessChip(status = quote.health.status)
+            }
+            Spacer(Modifier.height(spacing.sm))
+            Text(
+                text = "Insight only — never executes trades",
+                style = MaterialTheme.typography.labelSmall,
+                color = ConfluenceColors.OnSurfaceMuted,
+            )
+        }
 
-        Spacer(Modifier.height(spacing.sm))
-
-        Text(
-            text = formatPrice(quote.lastPrice),
-            style = MaterialTheme.typography.displayLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        Text(
-            text = pctText,
-            style = MaterialTheme.typography.headlineMedium,
-            color = pctColor,
-        )
-
-        FreshnessChip(status = quote.health.status)
-
-        Spacer(Modifier.height(spacing.lg))
-
-        Button(
+        AppButton(
             onClick = onOpenChart,
             modifier = Modifier.fillMaxWidth(),
+            style = AppButtonStyle.Primary,
         ) {
             Icon(Icons.Outlined.ShowChart, contentDescription = null)
             Spacer(Modifier.width(spacing.sm))
             Text("Open chart")
         }
 
-        OutlinedButton(
+        AppButton(
             onClick = onOpenAlerts,
             modifier = Modifier.fillMaxWidth(),
+            style = AppButtonStyle.Secondary,
         ) {
             Text(
                 if (state.unreadAlertCount > 0) {
@@ -211,9 +240,10 @@ private fun ReadyContent(
             )
         }
 
-        OutlinedButton(
+        AppButton(
             onClick = onOpenSettings,
             modifier = Modifier.fillMaxWidth(),
+            style = AppButtonStyle.Ghost,
         ) {
             Text("Settings (placeholder)")
         }
@@ -229,26 +259,16 @@ fun FreshnessChip(status: HealthStatus) {
         HealthStatus.STALE -> status.toChipLabel() to chart.healthStale
         HealthStatus.DISCONNECTED -> status.toChipLabel() to chart.healthDisconnected
     }
-    Surface(
-        color = color.copy(alpha = 0.18f),
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelLarge,
-            color = color,
-        )
-    }
+    AppStatusChip(label = label, color = color)
 }
 
 @Composable
 private fun LoadingState() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = ConfluenceColors.Primary)
             Spacer(Modifier.height(12.dp))
-            Text("Loading market snapshot…")
+            Text("Loading market snapshot…", color = ConfluenceColors.OnSurfaceMuted)
         }
     }
 }
@@ -256,15 +276,15 @@ private fun LoadingState() {
 @Composable
 private fun EmptyState(onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        AppCard(glow = AppCardGlow.Orange, modifier = Modifier.padding(horizontal = 8.dp)) {
             Text("No market data yet", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             Text(
                 "Fixtures or API have not provided a BTC/USDT snapshot.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = ConfluenceColors.OnSurfaceMuted,
             )
             Spacer(Modifier.height(16.dp))
-            Button(onClick = onRetry) { Text("Retry") }
+            AppButton(onClick = onRetry, style = AppButtonStyle.Secondary) { Text("Retry") }
         }
     }
 }
@@ -272,12 +292,12 @@ private fun EmptyState(onRetry: () -> Unit) {
 @Composable
 private fun ErrorState(message: String, onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        AppCard(glow = AppCardGlow.Orange, modifier = Modifier.padding(horizontal = 8.dp)) {
             Text("Something went wrong", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
-            Text(message, color = MaterialTheme.colorScheme.error)
+            Text(message, color = ConfluenceColors.Error)
             Spacer(Modifier.height(16.dp))
-            Button(onClick = onRetry) { Text("Retry") }
+            AppButton(onClick = onRetry, style = AppButtonStyle.Secondary) { Text("Retry") }
         }
     }
 }
@@ -285,7 +305,7 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 private fun formatPrice(price: Double): String =
     String.format(Locale.US, "$%,.2f", price)
 
-@Preview(showBackground = true, backgroundColor = 0xFF0B0F14)
+@Preview(showBackground = true, backgroundColor = 0xFF070B12)
 @Composable
 private fun HomeReadyPreview() {
     ConfluenceTheme {
