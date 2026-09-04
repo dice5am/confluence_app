@@ -9,7 +9,7 @@ Offline MD-1.1 closed candles + health samples. Synthetic timestamps documented 
 | `candles/btcusdt-1m-closed.json` | 1m | 120 | warm-up sample |
 | `candles/btcusdt-5m-closed.json` | 5m | 120 | |
 | `candles/btcusdt-15m-closed.json` | 15m | 120 | |
-| `candles/btcusdt-1h-closed.json` | 1h | >=220 (YTD span) | SMA-200 + YTD/MTD VWAP lookback |
+| `candles/btcusdt-1h-closed.json` | 1h | ~5916 (YTD span) | SMA-200 + YTD/MTD VWAP lookback |
 | `candles/btcusdt-4h-closed.json` | 4h | 120 | |
 | `candles/btcusdt-1d-closed.json` | 1d | 90 | |
 | `candles/btcusdt-1w-closed.json` | 1w | 60 | |
