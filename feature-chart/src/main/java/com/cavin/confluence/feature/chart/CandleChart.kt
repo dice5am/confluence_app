@@ -1,5 +1,7 @@
 package com.cavin.confluence.feature.chart
 
+import android.graphics.Paint
+import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -15,10 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
 import com.cavin.confluence.data.model.Candle
 import kotlin.math.floor
@@ -27,14 +32,10 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * MOB-2.1 / 2.7 — Compose Canvas OHLC + optional volume strip.
+ * Compose Canvas OHLC + volume + **dynamic X/Y axes**.
  *
- * - Horizontal pan + pinch-zoom on the time axis
- * - Long-press drag → crosshair + nearest candle callback
- * - Draws the visible index window only (no full-series copy per frame)
- * - MOB-2.7: collapsible volume histogram (~22% bottom)
- *
- * TODO(MOB-2.5): live append without full rebuild
+ * X = time (visible window labels update on pan/zoom/TF via [seriesKey]).
+ * Y = price (nice ticks from visible high/low).
  */
 @Composable
 fun CandleChart(
@@ -51,6 +52,10 @@ fun CandleChart(
     val density = LocalDensity.current
     val minCandleWidthPx = with(density) { 4.dp.toPx() }
     val maxCandleWidthPx = with(density) { 28.dp.toPx() }
+    val leftPad = with(density) { 56.dp.toPx() }
+    val rightPad = with(density) { 10.dp.toPx() }
+    val topPad = with(density) { 10.dp.toPx() }
+    val bottomPad = with(density) { 26.dp.toPx() }
 
     var startIndex by remember(seriesKey, candles.size) {
         mutableIntStateOf(max(0, candles.size - 48))
@@ -61,9 +66,18 @@ fun CandleChart(
     var crosshairX by remember { mutableStateOf<Float?>(null) }
     var drawEpoch by remember { mutableIntStateOf(0) }
 
-    fun visibleCount(width: Float, cw: Float): Int {
-        if (width <= 0f || cw <= 0f) return 1
-        return max(8, floor(width / cw).toInt())
+    val labelPaint = remember {
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = ConfluenceColors.OnSurfaceMuted.toArgb()
+            textSize = with(density) { 10.dp.toPx() }
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+        }
+    }
+    fun plotWidth(totalW: Float): Float = (totalW - leftPad - rightPad).coerceAtLeast(1f)
+
+    fun visibleCount(plotW: Float, cw: Float): Int {
+        if (plotW <= 0f || cw <= 0f) return 1
+        return max(8, floor(plotW / cw).toInt())
     }
 
     fun clampWindow(start: Int, count: Int): Int {
@@ -71,9 +85,9 @@ fun CandleChart(
         return start.coerceIn(0, max(0, candles.size - c))
     }
 
-    fun candleAtX(x: Float, start: Int, count: Int, cw: Float): Candle? {
+    fun candleAtPlotX(plotX: Float, start: Int, count: Int, cw: Float): Candle? {
         if (count <= 0 || cw <= 0f) return null
-        val idx = start + (x / cw).toInt().coerceIn(0, count - 1)
+        val idx = start + (plotX / cw).toInt().coerceIn(0, count - 1)
         return candles.getOrNull(idx)
     }
 
@@ -84,8 +98,9 @@ fun CandleChart(
             .pointerInput(seriesKey, candles.size) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     val width = canvasWidthPx.takeIf { it > 0f } ?: size.width.toFloat()
+                    val pw = plotWidth(width)
                     val cw = (candleWidthPx * zoom).coerceIn(minCandleWidthPx, maxCandleWidthPx)
-                    val count = visibleCount(width, cw)
+                    val count = visibleCount(pw, cw)
                     val shiftCandles = (-pan.x / cw).roundToInt()
                     candleWidthPx = cw
                     startIndex = clampWindow(startIndex + shiftCandles, count)
@@ -99,9 +114,11 @@ fun CandleChart(
                     onDragStart = { offset ->
                         crosshairX = offset.x
                         val width = canvasWidthPx.takeIf { it > 0f } ?: size.width.toFloat()
-                        val count = visibleCount(width, candleWidthPx)
+                        val pw = plotWidth(width)
+                        val count = visibleCount(pw, candleWidthPx)
                         val start = clampWindow(startIndex, count)
-                        onCrosshairCandle(candleAtX(offset.x, start, count, candleWidthPx))
+                        val plotX = offset.x - leftPad
+                        onCrosshairCandle(candleAtPlotX(plotX, start, count, candleWidthPx))
                         drawEpoch++
                     },
                     onDrag = { change, _ ->
@@ -109,12 +126,13 @@ fun CandleChart(
                         val x = change.position.x
                         crosshairX = x
                         val width = canvasWidthPx.takeIf { it > 0f } ?: size.width.toFloat()
-                        val count = visibleCount(width, candleWidthPx)
+                        val pw = plotWidth(width)
+                        val count = visibleCount(pw, candleWidthPx)
                         val start = clampWindow(startIndex, count)
-                        onCrosshairCandle(candleAtX(x, start, count, candleWidthPx))
+                        onCrosshairCandle(candleAtPlotX(x - leftPad, start, count, candleWidthPx))
                         drawEpoch++
                     },
-                    onDragEnd = { /* keep selection until Clear / pan-zoom */ },
+                    onDragEnd = { },
                     onDragCancel = {
                         crosshairX = null
                         onCrosshairCandle(null)
@@ -128,13 +146,17 @@ fun CandleChart(
 
         val width = size.width
         val height = size.height
-        val volFrac = if (showVolume) 0.22f else 0f
-        val priceHeight = height * (1f - volFrac)
-        val volTop = priceHeight
-        val volHeight = height - priceHeight
+        val plotW = plotWidth(width)
+        val plotBottom = height - bottomPad
+        val volFrac = if (showVolume) 0.20f else 0f
+        val usableH = (plotBottom - topPad).coerceAtLeast(1f)
+        val volHeight = usableH * volFrac
+        val priceHeight = usableH - volHeight
+        val priceTop = topPad
+        val volTop = priceTop + priceHeight
 
         val cw = candleWidthPx
-        val count = visibleCount(width, cw)
+        val count = visibleCount(plotW, cw)
         val start = clampWindow(startIndex, count)
         val end = min(candles.size, start + count)
         if (start >= end) return@Canvas
@@ -153,19 +175,42 @@ fun CandleChart(
         hi += pad
         val span = (hi - lo).coerceAtLeast(1e-3f)
 
-        fun yFor(price: Float): Float = priceHeight - ((price - lo) / span) * priceHeight
+        fun yFor(price: Float): Float =
+            priceTop + priceHeight - ((price - lo) / span) * priceHeight
 
+        fun xForSlot(slot: Int): Float = leftPad + slot * cw + cw / 2f
+
+        val tf = candles[start].timeframe
         val gridColor = chartColors.grid
-        for (i in 0..3) {
-            val gy = priceHeight * i / 4f
-            drawLine(gridColor, Offset(0f, gy), Offset(width, gy), strokeWidth = 1f)
+        val yTicks = ChartAxisLabels.priceTicks(lo, hi, targetCount = 5)
+
+        // Y grid + labels
+        for (price in yTicks) {
+            val gy = yFor(price)
+            if (gy < priceTop || gy > priceTop + priceHeight) continue
+            drawLine(
+                gridColor,
+                Offset(leftPad, gy),
+                Offset(width - rightPad, gy),
+                strokeWidth = 1f,
+            )
+            drawContext.canvas.nativeCanvas.drawText(
+                ChartAxisLabels.formatPrice(price),
+                4f,
+                gy + labelPaint.textSize * 0.35f,
+                labelPaint,
+            )
         }
+
+        // Plot frame
+        drawLine(ConfluenceColors.Primary.copy(alpha = 0.35f), Offset(leftPad, priceTop), Offset(leftPad, plotBottom), strokeWidth = 1.5f)
+        drawLine(ConfluenceColors.Primary.copy(alpha = 0.35f), Offset(leftPad, plotBottom), Offset(width - rightPad, plotBottom), strokeWidth = 1.5f)
 
         val bodyFrac = 0.62f
         for (i in start until end) {
             val c = candles[i]
             val slot = i - start
-            val cx = slot * cw + cw / 2f
+            val cx = xForSlot(slot)
             val bull = c.close >= c.open
             val color = if (bull) chartColors.bull else chartColors.bear
             val yHigh = yFor(c.high.toFloat())
@@ -185,37 +230,77 @@ fun CandleChart(
         }
 
         if (showVolume && volHeight > 1f && maxVol > 0.0) {
-            drawLine(gridColor, Offset(0f, volTop), Offset(width, volTop), strokeWidth = 1f)
+            drawLine(gridColor, Offset(leftPad, volTop), Offset(width - rightPad, volTop), strokeWidth = 1f)
             val barW = cw * 0.7f
             for (i in start until end) {
                 val c = candles[i]
                 val slot = i - start
-                val cx = slot * cw + cw / 2f
+                val cx = xForSlot(slot)
                 val bull = c.close >= c.open
                 val color = if (bull) chartColors.bull else chartColors.bear
                 val h = (c.volume / maxVol).toFloat().coerceIn(0f, 1f) * (volHeight - 2f)
                 drawRect(
                     color = color.copy(alpha = 0.45f),
-                    topLeft = Offset(cx - barW / 2f, height - h),
+                    topLeft = Offset(cx - barW / 2f, plotBottom - h),
                     size = Size(barW, h.coerceAtLeast(1f)),
                 )
             }
         }
 
+        // X time labels (update with pan/zoom/TF)
+        val slots = ChartAxisLabels.timeSlotIndices(
+            visibleCount = end - start,
+            minPxBetween = with(density) { 56.dp.toPx() },
+            candleWidthPx = cw,
+        )
+        labelPaint.textAlign = Paint.Align.CENTER
+        for (slot in slots) {
+            val idx = start + slot
+            val c = candles.getOrNull(idx) ?: continue
+            val cx = xForSlot(slot)
+            drawLine(
+                ConfluenceColors.Outline,
+                Offset(cx, plotBottom),
+                Offset(cx, plotBottom + 4f),
+                strokeWidth = 1f,
+            )
+            drawContext.canvas.nativeCanvas.drawText(
+                ChartAxisLabels.formatTime(c.openTimeMs, tf),
+                cx,
+                height - 6f,
+                labelPaint,
+            )
+        }
+        labelPaint.textAlign = Paint.Align.LEFT
+
         val xh = crosshairX
-        if (xh != null) {
+        if (xh != null && xh >= leftPad && xh <= width - rightPad) {
             val dash = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f)
             drawLine(
                 chartColors.crosshair,
-                Offset(xh, 0f),
-                Offset(xh, height),
+                Offset(xh, priceTop),
+                Offset(xh, plotBottom),
                 strokeWidth = 1.5f,
                 pathEffect = dash,
             )
-            val c = candleAtX(xh, start, count, cw)
+            val c = candleAtPlotX(xh - leftPad, start, count, cw)
             if (c != null) {
                 val y = yFor(c.close.toFloat())
                 drawCircle(chartColors.crosshair, radius = 5f, center = Offset(xh, y))
+                drawLine(
+                    chartColors.crosshair.copy(alpha = 0.5f),
+                    Offset(leftPad, y),
+                    Offset(width - rightPad, y),
+                    strokeWidth = 1f,
+                    pathEffect = dash,
+                )
+                drawContext.canvas.nativeCanvas.drawText(
+                    ChartAxisLabels.formatPrice(c.close.toFloat()),
+                    leftPad + 4f,
+                    (y - 6f).coerceAtLeast(priceTop + labelPaint.textSize),
+                    labelPaint.apply { color = ConfluenceColors.Accent.toArgb() },
+                )
+                labelPaint.color = ConfluenceColors.OnSurfaceMuted.toArgb()
             }
         }
     }

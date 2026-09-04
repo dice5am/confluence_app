@@ -15,6 +15,8 @@ import com.cavin.confluence.data.model.MarketHealth
 import com.cavin.confluence.data.model.Timeframe
 import com.cavin.confluence.data.model.Venue
 import com.cavin.confluence.data.remote.MarketDataFactory
+import com.cavin.confluence.data.snapshot.MdSnapshotStore
+import com.cavin.confluence.data.snapshot.SnapshotMarketDataApi
 import com.cavin.confluence.data.remote.ResilientMarketDataApi
 import com.cavin.confluence.data.series.CandleSeries
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +43,8 @@ data class ChartUiState(
     /** True when ResilientMarketDataApi fell back to fixtures. */
     val usingFixtures: Boolean = false,
     val lastLiveAppendMs: Long? = null,
+    /** Non-null when serving frozen Binance historical assets (no live WS). */
+    val snapshotBanner: String? = null,
 )
 
 /**
@@ -106,6 +110,12 @@ class ChartViewModel(
             Log.d(PERF, "$label ${dt}ms" + if (isTfSwitch) " (DoD <100ms cached)" else "")
             rawSeries = raw
             val fixtures = (api as? ResilientMarketDataApi)?.usingFixtures == true
+            val snapBanner = when {
+                api is SnapshotMarketDataApi -> MdSnapshotStore.bannerLabel
+                health.note?.startsWith("Historical snapshot") == true -> health.note
+                MdSnapshotStore.isLoaded() && fixtures -> MdSnapshotStore.bannerLabel
+                else -> null
+            }
             _ui.update {
                 it.copy(
                     loading = false,
@@ -115,10 +125,14 @@ class ChartViewModel(
                     venue = Venue.BINANCE,
                     error = if (drawn.isEmpty()) "No candles" else null,
                     lastTfSwitchMs = if (isTfSwitch) dt else it.lastTfSwitchMs,
-                    usingFixtures = fixtures,
+                    usingFixtures = fixtures || api is SnapshotMarketDataApi,
+                    snapshotBanner = snapBanner,
                 )
             }
-            startLive(tf)
+            // Snapshot mode: no live WS; still observe static health once.
+            if (api !is SnapshotMarketDataApi) {
+                startLive(tf)
+            }
             startHealth()
         }.onFailure { e ->
             _ui.update {
