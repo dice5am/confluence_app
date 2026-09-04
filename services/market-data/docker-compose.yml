@@ -2,7 +2,8 @@
 # Usage (from this directory):
 #   docker compose up --build
 # Optional live ingest (public WS only):
-#   ENABLE_LIVE_INGEST=1 LIVE_TIMEFRAMES=1m docker compose up --build
+#   ENABLE_LIVE_INGEST=1 docker compose up --build
+#   # or subset: LIVE_TIMEFRAMES=1m,5m,15m ENABLE_LIVE_INGEST=1 docker compose up --build
 # Then: curl http://127.0.0.1:8080/health
 services:
   market-data:
@@ -12,5 +13,5 @@ services:
     environment:
       PORT: "8080"
       ENABLE_LIVE_INGEST: "${ENABLE_LIVE_INGEST:-0}"
-      LIVE_TIMEFRAMES: "${LIVE_TIMEFRAMES:-1m}"
+      LIVE_TIMEFRAMES: "${LIVE_TIMEFRAMES:-1m,5m,15m,1h,4h,1d,1w}"
     restart: "no"

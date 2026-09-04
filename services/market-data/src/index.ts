@@ -61,3 +61,36 @@ export type {
   CandleHandler,
   Unsubscribe,
 } from './api/index.js';
+
+export {
+  listTfPolicies,
+  getTfPolicy,
+  resolveVenueNativeInterval,
+  assertAllVenueNative,
+} from './policy/index.js';
+export type { TfSourceMode, TfPolicyEntry } from './policy/index.js';
+export {
+  RestWeightBudget,
+  KLINES_REQUEST_WEIGHT,
+  DEFAULT_WEIGHT_LIMIT_PER_MIN,
+  DEFAULT_GAP_FILL_RESERVE,
+  getSharedRestWeightBudget,
+  setSharedRestWeightBudget,
+} from './binance/weight-budget.js';
+export type { RestWeightBudgetOptions } from './binance/weight-budget.js';
+export {
+  backfillTimeframes,
+  backfillAllTimeframes,
+} from './backfill/index.js';
+export type {
+  FetchKlinesFn as BackfillFetchKlinesFn,
+  BackfillTimeframeSpec,
+  MultiTfBackfillOptions,
+  TfBackfillResult,
+  MultiTfBackfillResult,
+} from './backfill/index.js';
+export { startMultiTfLiveIngest } from './live/index.js';
+export type {
+  MultiTfLiveIngestOptions,
+  MultiTfLiveIngestHandle,
+} from './live/index.js';
