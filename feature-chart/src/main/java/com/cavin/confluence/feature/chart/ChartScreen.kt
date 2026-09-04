@@ -139,13 +139,26 @@ fun ChartScreen(
                 }
             }
 
+            // Snapshot banner is surfaced via ChartStatusBanner (usingFixtures + healthNote)
+            // and explicit snapshotBanner when present.
+            state.snapshotBanner?.let { note ->
+                AppCard(glow = AppCardGlow.Orange, contentPadding = 12.dp) {
+                    Text(
+                        text = note,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = ConfluenceColors.OnSurface,
+                    )
+                }
+            }
+
             ChartStatusBanner(
                 loading = state.loading,
                 error = state.error,
                 health = state.health?.status,
                 healthNote = state.health?.note,
                 empty = !state.loading && state.error == null && state.candles.isEmpty(),
-                usingFixtures = state.usingFixtures,
+                // Avoid duplicate "Historical snapshot" card when snapshotBanner is shown above.
+                usingFixtures = state.usingFixtures && state.snapshotBanner == null,
                 onRetry = onRetry,
             )
 
@@ -158,7 +171,10 @@ fun ChartScreen(
                             append("drawn ${state.candles.size}/${state.rawCandleCount}")
                             state.lastTfSwitchMs?.let { append(" · TF ${it}ms") }
                             state.lastLiveAppendMs?.let { append(" · live ${it}ms") }
-                            if (state.usingFixtures) append(" · fixtures")
+                            when {
+                                state.snapshotBanner != null -> append(" · snapshot")
+                                state.usingFixtures -> append(" · fixtures")
+                            }
                         },
                         style = MaterialTheme.typography.labelSmall,
                         color = ConfluenceColors.OnSurfaceMuted,

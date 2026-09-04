@@ -14,8 +14,9 @@ import kotlinx.coroutines.flow.flow
 import kotlin.math.sin
 
 /**
- * In-memory MD-1.1 fixtures for Phase 1 scaffold (MOB-1.5 light stubs).
+ * Fallback MD-1.1 fixtures (sine) for JVM tests when snapshot assets are not loaded.
  *
+ * Runtime debug APK prefers [com.cavin.confluence.data.snapshot.MdSnapshotStore].
  * Zero exchange SDKs / API keys. Insight-only.
  */
 object FakeFixtures {
@@ -103,16 +104,28 @@ object FakeFixtures {
     fun sampleQuote(
         health: MarketHealth = sampleHealth(),
     ): QuoteSnapshot {
-        val candles = sampleClosedCandles()
+        val candles = if (com.cavin.confluence.data.snapshot.MdSnapshotStore.isLoaded()) {
+            com.cavin.confluence.data.snapshot.MdSnapshotStore.candles(Timeframe.H1)
+        } else {
+            sampleClosedCandles()
+        }
         val last = candles.last()
-        val prev = candles[candles.lastIndex - 1]
-        val pct = ((last.close - prev.close) / prev.close) * 100.0
+        val prev = candles.getOrNull(candles.lastIndex - 1)
+        val pct = prev?.let { ((last.close - it.close) / it.close) * 100.0 }
+        val resolvedHealth = if (com.cavin.confluence.data.snapshot.MdSnapshotStore.isLoaded()) {
+            health.copy(
+                lastSourceTsMs = com.cavin.confluence.data.snapshot.MdSnapshotStore.cutoffMs,
+                note = com.cavin.confluence.data.snapshot.MdSnapshotStore.bannerLabel,
+            )
+        } else {
+            health
+        }
         return QuoteSnapshot(
             venue = last.venue,
             symbol = last.symbol,
             lastPrice = last.close,
             percentChange = pct,
-            health = health,
+            health = resolvedHealth,
             asOfSourceTsMs = last.sourceTsMs,
         )
     }
@@ -142,8 +155,13 @@ class FakeMarketDataApi(
         fromMs: Long?,
         toMs: Long?,
     ): List<Candle> {
-        // History GET: closed-only
-        return FakeFixtures.sampleClosedCandles(venue, timeframe)
+        // Prefer packaged Binance snapshot when loaded; else sine fixtures (unit tests).
+        val base = if (com.cavin.confluence.data.snapshot.MdSnapshotStore.isLoaded()) {
+            com.cavin.confluence.data.snapshot.MdSnapshotStore.candles(timeframe)
+        } else {
+            FakeFixtures.sampleClosedCandles(venue, timeframe)
+        }
+        return base
             .filter { it.isFinal }
             .filter { fromMs == null || it.openTimeMs >= fromMs }
             .filter { toMs == null || it.openTimeMs <= toMs }

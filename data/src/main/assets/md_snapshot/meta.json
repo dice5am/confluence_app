@@ -1,0 +1,59 @@
+{
+  "symbol": "BTCUSDT",
+  "venue": "binance",
+  "source": "data-api.binance.vision",
+  "fetchedAtMs": 1788545761769,
+  "intervals": {
+    "1m": {
+      "count": 799,
+      "firstOpenTimeMs": 1788497820000,
+      "lastOpenTimeMs": 1788545700000,
+      "lastCloseTimeMs": 1788545759999,
+      "lastClose": 79533.23
+    },
+    "5m": {
+      "count": 499,
+      "firstOpenTimeMs": 1788396000000,
+      "lastOpenTimeMs": 1788545400000,
+      "lastCloseTimeMs": 1788545699999,
+      "lastClose": 79527.54
+    },
+    "15m": {
+      "count": 499,
+      "firstOpenTimeMs": 1788096600000,
+      "lastOpenTimeMs": 1788544800000,
+      "lastCloseTimeMs": 1788545699999,
+      "lastClose": 79527.54
+    },
+    "1h": {
+      "count": 499,
+      "firstOpenTimeMs": 1786748400000,
+      "lastOpenTimeMs": 1788541200000,
+      "lastCloseTimeMs": 1788544799999,
+      "lastClose": 79472.22
+    },
+    "4h": {
+      "count": 399,
+      "firstOpenTimeMs": 1782792000000,
+      "lastOpenTimeMs": 1788523200000,
+      "lastCloseTimeMs": 1788537599999,
+      "lastClose": 79429.33
+    },
+    "1d": {
+      "count": 399,
+      "firstOpenTimeMs": 1754006400000,
+      "lastOpenTimeMs": 1788393600000,
+      "lastCloseTimeMs": 1788479999999,
+      "lastClose": 81270.37
+    },
+    "1w": {
+      "count": 199,
+      "firstOpenTimeMs": 1667779200000,
+      "lastOpenTimeMs": 1787529600000,
+      "lastCloseTimeMs": 1788134399999,
+      "lastClose": 77682.0
+    }
+  },
+  "cutoffMs": 1788544799999,
+  "cutoffUtc": "2026-09-04 17:59 UTC"
+}

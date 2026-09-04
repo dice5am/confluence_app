@@ -14,8 +14,8 @@ sealed interface HomeUiState {
     ) : HomeUiState
 }
 
-fun HealthStatus.toChipLabel(): String = when (this) {
-    HealthStatus.OK -> "Live"
+fun HealthStatus.toChipLabel(snapshot: Boolean = false): String = when (this) {
+    HealthStatus.OK -> if (snapshot) "Snapshot" else "Live"
     HealthStatus.DEGRADED -> "Degraded"
     HealthStatus.STALE -> "Stale"
     HealthStatus.DISCONNECTED -> "Offline"

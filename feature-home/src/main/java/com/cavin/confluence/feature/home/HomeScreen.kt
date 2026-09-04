@@ -57,8 +57,9 @@ fun HomeRoute(
     onOpenChart: () -> Unit,
     onOpenAlerts: () -> Unit,
     onOpenSettings: () -> Unit = {},
-    viewModel: HomeViewModel = viewModel(factory = HomeViewModel.factory()),
 ) {
+    val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as android.app.Application
+    val viewModel: HomeViewModel = viewModel(factory = HomeViewModel.factory(app = app))
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     HomeScreen(
         state = state,
@@ -206,7 +207,18 @@ private fun ReadyContent(
                     fontWeight = FontWeight.SemiBold,
                     color = pctColor,
                 )
-                FreshnessChip(status = quote.health.status)
+                FreshnessChip(
+                    status = quote.health.status,
+                    snapshot = quote.health.note?.startsWith("Historical snapshot") == true,
+                )
+            }
+            quote.health.note?.takeIf { it.startsWith("Historical snapshot") }?.let { note ->
+                Spacer(Modifier.height(spacing.xs))
+                Text(
+                    text = note,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = ConfluenceColors.OnSurfaceMuted,
+                )
             }
             Spacer(Modifier.height(spacing.sm))
             Text(
@@ -251,13 +263,13 @@ private fun ReadyContent(
 }
 
 @Composable
-fun FreshnessChip(status: HealthStatus) {
+fun FreshnessChip(status: HealthStatus, snapshot: Boolean = false) {
     val chart = ConfluenceThemeAccess.chartColors
     val (label, color) = when (status) {
-        HealthStatus.OK -> status.toChipLabel() to chart.healthOk
-        HealthStatus.DEGRADED -> status.toChipLabel() to chart.healthDegraded
-        HealthStatus.STALE -> status.toChipLabel() to chart.healthStale
-        HealthStatus.DISCONNECTED -> status.toChipLabel() to chart.healthDisconnected
+        HealthStatus.OK -> status.toChipLabel(snapshot) to chart.healthOk
+        HealthStatus.DEGRADED -> status.toChipLabel(snapshot) to chart.healthDegraded
+        HealthStatus.STALE -> status.toChipLabel(snapshot) to chart.healthStale
+        HealthStatus.DISCONNECTED -> status.toChipLabel(snapshot) to chart.healthDisconnected
     }
     AppStatusChip(label = label, color = color)
 }
