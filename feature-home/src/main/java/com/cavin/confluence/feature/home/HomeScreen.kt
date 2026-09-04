@@ -39,6 +39,7 @@ import com.cavin.confluence.core.ui.components.AppButton
 import com.cavin.confluence.core.ui.components.AppButtonStyle
 import com.cavin.confluence.core.ui.components.AppCard
 import com.cavin.confluence.core.ui.components.AppCardGlow
+import com.cavin.confluence.core.ui.components.AppSectionLabel
 import com.cavin.confluence.core.ui.components.AppStatusChip
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
@@ -180,84 +181,93 @@ private fun ReadyContent(
     } ?: "—%"
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(spacing.md),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = spacing.md),
+        verticalArrangement = Arrangement.spacedBy(spacing.lg),
     ) {
-        AppCard(glow = AppCardGlow.Blue) {
-            Text(
-                text = "BTC / USDT",
-                style = MaterialTheme.typography.labelLarge,
-                color = ConfluenceColors.Primary,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(spacing.xs))
-            Text(
-                text = formatPrice(quote.lastPrice),
-                style = MaterialTheme.typography.displayLarge,
-                fontWeight = FontWeight.Bold,
-                color = ConfluenceColors.OnBackground,
-            )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(spacing.md),
-            ) {
+        Column {
+            AppSectionLabel("Market", accent = true)
+            AppCard(glow = AppCardGlow.Blue) {
                 Text(
-                    text = pctText,
-                    style = MaterialTheme.typography.headlineMedium,
+                    text = "BTC / USDT",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = ConfluenceColors.Primary,
                     fontWeight = FontWeight.SemiBold,
-                    color = pctColor,
                 )
-                FreshnessChip(
-                    status = quote.health.status,
-                    snapshot = quote.health.note?.startsWith("Historical snapshot") == true,
-                )
-            }
-            quote.health.note?.takeIf { it.startsWith("Historical snapshot") }?.let { note ->
                 Spacer(Modifier.height(spacing.xs))
                 Text(
-                    text = note,
-                    style = MaterialTheme.typography.labelMedium,
+                    text = formatPrice(quote.lastPrice),
+                    style = MaterialTheme.typography.displayLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = ConfluenceColors.OnBackground,
+                )
+                Spacer(Modifier.height(spacing.sm))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.md),
+                ) {
+                    Text(
+                        text = pctText,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = pctColor,
+                    )
+                    FreshnessChip(
+                        status = quote.health.status,
+                        snapshot = quote.health.note?.startsWith("Historical snapshot") == true,
+                    )
+                }
+                quote.health.note?.takeIf { it.startsWith("Historical snapshot") }?.let { note ->
+                    Spacer(Modifier.height(spacing.sm))
+                    Text(
+                        text = note,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ConfluenceColors.OnSurfaceMuted,
+                    )
+                }
+                Spacer(Modifier.height(spacing.md))
+                Text(
+                    text = "Insight only — never executes trades",
+                    style = MaterialTheme.typography.labelSmall,
                     color = ConfluenceColors.OnSurfaceMuted,
                 )
             }
-            Spacer(Modifier.height(spacing.sm))
-            Text(
-                text = "Insight only — never executes trades",
-                style = MaterialTheme.typography.labelSmall,
-                color = ConfluenceColors.OnSurfaceMuted,
-            )
         }
 
-        AppButton(
-            onClick = onOpenChart,
-            modifier = Modifier.fillMaxWidth(),
-            style = AppButtonStyle.Primary,
-        ) {
-            Icon(Icons.Outlined.ShowChart, contentDescription = null)
-            Spacer(Modifier.width(spacing.sm))
-            Text("Open chart")
-        }
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
+            AppSectionLabel("Navigate")
+            AppButton(
+                onClick = onOpenChart,
+                modifier = Modifier.fillMaxWidth(),
+                style = AppButtonStyle.Primary,
+            ) {
+                Icon(Icons.Outlined.ShowChart, contentDescription = null)
+                Spacer(Modifier.width(spacing.sm))
+                Text("Open chart")
+            }
 
-        AppButton(
-            onClick = onOpenAlerts,
-            modifier = Modifier.fillMaxWidth(),
-            style = AppButtonStyle.Secondary,
-        ) {
-            Text(
-                if (state.unreadAlertCount > 0) {
-                    "Alerts (${state.unreadAlertCount} unread)"
-                } else {
-                    "Alerts"
-                },
-            )
-        }
+            AppButton(
+                onClick = onOpenAlerts,
+                modifier = Modifier.fillMaxWidth(),
+                style = AppButtonStyle.Secondary,
+            ) {
+                Text(
+                    if (state.unreadAlertCount > 0) {
+                        "Alerts (${state.unreadAlertCount} unread)"
+                    } else {
+                        "Alerts"
+                    },
+                )
+            }
 
-        AppButton(
-            onClick = onOpenSettings,
-            modifier = Modifier.fillMaxWidth(),
-            style = AppButtonStyle.Ghost,
-        ) {
-            Text("Settings (placeholder)")
+            AppButton(
+                onClick = onOpenSettings,
+                modifier = Modifier.fillMaxWidth(),
+                style = AppButtonStyle.Ghost,
+            ) {
+                Text("Settings (placeholder)")
+            }
         }
     }
 }
@@ -277,10 +287,22 @@ fun FreshnessChip(status: HealthStatus, snapshot: Boolean = false) {
 @Composable
 private fun LoadingState() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator(color = ConfluenceColors.Primary)
-            Spacer(Modifier.height(12.dp))
-            Text("Loading market snapshot…", color = ConfluenceColors.OnSurfaceMuted)
+        AppCard(glow = AppCardGlow.Blue, modifier = Modifier.padding(horizontal = 8.dp)) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                CircularProgressIndicator(color = ConfluenceColors.Primary)
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Loading market snapshot…",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Frozen Binance history when wired",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ConfluenceColors.OnSurfaceMuted,
+                )
+            }
         }
     }
 }
@@ -289,10 +311,18 @@ private fun LoadingState() {
 private fun EmptyState(onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         AppCard(glow = AppCardGlow.Orange, modifier = Modifier.padding(horizontal = 8.dp)) {
-            Text("No market data yet", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Empty",
+                style = MaterialTheme.typography.labelSmall,
+                color = ConfluenceColors.OnSurfaceMuted,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text("No market data yet", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             Text(
-                "Fixtures or API have not provided a BTC/USDT snapshot.",
+                "No BTC/USDT snapshot available yet. Retry after assets or API are ready.",
+                style = MaterialTheme.typography.bodyMedium,
                 color = ConfluenceColors.OnSurfaceMuted,
             )
             Spacer(Modifier.height(16.dp))
@@ -305,9 +335,16 @@ private fun EmptyState(onRetry: () -> Unit) {
 private fun ErrorState(message: String, onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         AppCard(glow = AppCardGlow.Orange, modifier = Modifier.padding(horizontal = 8.dp)) {
-            Text("Something went wrong", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Error",
+                style = MaterialTheme.typography.labelSmall,
+                color = ConfluenceColors.OnSurfaceMuted,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text("Something went wrong", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
-            Text(message, color = ConfluenceColors.Error)
+            Text(message, style = MaterialTheme.typography.bodyMedium, color = ConfluenceColors.Error)
             Spacer(Modifier.height(16.dp))
             AppButton(onClick = onRetry, style = AppButtonStyle.Secondary) { Text("Retry") }
         }
