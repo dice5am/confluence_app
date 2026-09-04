@@ -6,7 +6,7 @@ package com.cavin.confluence.navigation
  * - home
  * - chart?tf=&alertId=
  * - alerts
- * - settings (placeholder OK)
+ * - settings
  */
 object Routes {
     const val HOME = "home"

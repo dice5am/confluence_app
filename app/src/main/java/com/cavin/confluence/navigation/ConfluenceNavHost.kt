@@ -1,23 +1,20 @@
 package com.cavin.confluence.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.ShowChart
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -26,63 +23,62 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.cavin.confluence.core.ui.components.FloatingDock
+import com.cavin.confluence.core.ui.components.FloatingDockItem
+import com.cavin.confluence.core.ui.components.GlassCard
+import com.cavin.confluence.core.ui.theme.ConfluenceColors
+import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
 import com.cavin.confluence.feature.alerts.AlertsRoute
 import com.cavin.confluence.feature.chart.ChartRoute
 import com.cavin.confluence.feature.home.HomeRoute
-
-private data class TopLevel(
-    val route: String,
-    val label: String,
-    val icon: ImageVector,
-)
-
-private val topLevel = listOf(
-    TopLevel(Routes.HOME, "Home", Icons.Outlined.Home),
-    TopLevel(Routes.CHART, "Chart", Icons.Outlined.ShowChart),
-    TopLevel(Routes.ALERTS, "Alerts", Icons.Outlined.Notifications),
-)
 
 @Composable
 fun ConfluenceNavHost() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    val selectedId = when {
+        currentRoute?.startsWith("chart") == true -> "chart"
+        currentRoute == Routes.ALERTS -> "alerts"
+        else -> "home"
+    }
+
+    val dockItems = listOf(
+        FloatingDockItem("home", "Home", Icons.Outlined.Home),
+        FloatingDockItem("chart", "Chart", Icons.Outlined.ShowChart),
+        FloatingDockItem("alerts", "Alerts", Icons.Outlined.Notifications),
+    )
 
     Scaffold(
+        containerColor = ConfluenceColors.Void,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            NavigationBar {
-                topLevel.forEach { dest ->
-                    val selected = when (dest.route) {
-                        Routes.CHART -> currentRoute?.startsWith("chart") == true
-                        else -> currentRoute == dest.route
+            FloatingDock(
+                items = dockItems,
+                selectedId = selectedId,
+                onSelect = { id ->
+                    val target = when (id) {
+                        "chart" -> Routes.chart(tf = "1h")
+                        "alerts" -> Routes.ALERTS
+                        else -> Routes.HOME
                     }
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            val target = if (dest.route == Routes.CHART) {
-                                Routes.chart(tf = "1h")
-                            } else {
-                                dest.route
-                            }
-                            navController.navigate(target) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Icon(dest.icon, contentDescription = dest.label) },
-                        label = { Text(dest.label) },
-                    )
-                }
-            }
+                    navController.navigate(target) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+            )
         },
     ) { padding ->
         NavHost(
             navController = navController,
             startDestination = Routes.HOME,
-            modifier = Modifier.padding(padding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
         ) {
             composable(
                 route = Routes.HOME,
@@ -161,22 +157,32 @@ fun ConfluenceNavHost() {
             }
 
             composable(route = Routes.SETTINGS) {
-                SettingsPlaceholder()
+                SettingsScreen()
             }
         }
     }
 }
 
 @Composable
-private fun SettingsPlaceholder() {
+private fun SettingsScreen() {
+    val spacing = ConfluenceThemeAccess.spacing
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(spacing.lg),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = "Settings — placeholder",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        GlassCard {
+            Text(
+                text = "Settings",
+                style = MaterialTheme.typography.titleLarge,
+                color = ConfluenceColors.TextPrimary,
+            )
+            Text(
+                text = "Preferences will live here.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = ConfluenceColors.Slate,
+            )
+        }
     }
 }

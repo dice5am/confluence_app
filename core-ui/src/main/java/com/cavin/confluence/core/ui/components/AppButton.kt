@@ -54,16 +54,16 @@ fun AppButton(
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             content = content,
         )
-        AppButtonStyle.Secondary -> Button(
+        AppButtonStyle.Secondary -> OutlinedButton(
             onClick = onClick,
             modifier = min,
             enabled = enabled,
             shape = shape,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = ConfluenceColors.Accent,
-                contentColor = ConfluenceColors.OnAccent,
-                disabledContainerColor = ConfluenceColors.AccentContainer,
+            border = BorderStroke(1.dp, ConfluenceColors.CyberCyan.copy(alpha = 0.55f)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = ConfluenceColors.CyberCyan,
                 disabledContentColor = ConfluenceColors.OnSurfaceMuted,
+                containerColor = ConfluenceColors.SurfaceGlassSolid.copy(alpha = 0.4f),
             ),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             content = content,

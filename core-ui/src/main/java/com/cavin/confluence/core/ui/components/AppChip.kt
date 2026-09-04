@@ -36,7 +36,7 @@ fun AppChip(
     val shape = RoundedCornerShape(999.dp)
     val accentColor = when (accent) {
         AppChipAccent.Blue -> ConfluenceColors.Primary
-        AppChipAccent.Orange -> ConfluenceColors.Accent
+        AppChipAccent.Orange -> ConfluenceColors.CyberCyan
     }
     val bg = if (selected) {
         Brush.horizontalGradient(

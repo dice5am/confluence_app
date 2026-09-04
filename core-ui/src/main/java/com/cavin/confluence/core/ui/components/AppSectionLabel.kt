@@ -24,7 +24,7 @@ fun AppSectionLabel(
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.SemiBold,
         letterSpacing = 0.8.sp,
-        color = if (accent) ConfluenceColors.Primary else ConfluenceColors.OnSurfaceMuted,
+        color = if (accent) ConfluenceColors.CyberCyan else ConfluenceColors.Slate,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )

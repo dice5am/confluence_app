@@ -1,6 +1,5 @@
 package com.cavin.confluence.feature.alerts
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -8,8 +7,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -17,16 +16,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
+import com.cavin.confluence.core.ui.components.AlertAccent
+import com.cavin.confluence.core.ui.components.AlertRow
+import com.cavin.confluence.core.ui.components.Disclaimer
+import com.cavin.confluence.core.ui.components.GlassCard
+import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
+import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
 
-/**
- * Alerts inbox stub (MOB Phase 1). Full inbox is MOB-4.1.
- * Advisory / confluence insight only — no order actions.
- */
 @Composable
 fun AlertsRoute(
     onOpenAlert: (alertId: String) -> Unit = {},
@@ -39,81 +39,71 @@ fun AlertsRoute(
 fun AlertsScreen(
     onOpenAlert: (alertId: String) -> Unit = {},
 ) {
+    val spacing = ConfluenceThemeAccess.spacing
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Alerts") },
+                title = {
+                    Column {
+                        Text(
+                            "Insight alerts",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ConfluenceColors.TextPrimary,
+                        )
+                        Text(
+                            "Advisory only · no buy/sell",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ConfluenceColors.Slate,
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = ConfluenceColors.Void,
                 ),
             )
         },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = ConfluenceColors.Void,
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .padding(horizontal = spacing.lg, vertical = spacing.md)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(spacing.md),
         ) {
-            Text(
-                text = "Insight alerts",
-                style = MaterialTheme.typography.headlineMedium,
-            )
-            Text(
-                text = "Inbox placeholder — confluence explainability arrives in Phase 4.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = "No Buy / Sell actions. Advisory only.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(8.dp))
-
-            // Light stub rows so deep-link wiring is exercisable
-            StubAlertRow(
-                title = "Sample confluence (stub)",
-                subtitle = "alert-demo-1 · tap opens chart deep-link",
+            AlertRow(
+                title = "Sample confluence",
+                meta = "12:04 UTC  ·  [EMA-CROSS]  ·  [VOL-SPIKE]",
+                confidenceLabel = "88%",
+                confidencePct = 88,
+                accent = AlertAccent.Confluence,
+                unread = true,
                 onClick = { onOpenAlert("alert-demo-1") },
             )
-            StubAlertRow(
-                title = "Empty-state preview",
-                subtitle = "TODO(MOB-4.1): real payload list",
-                onClick = { onOpenAlert("alert-demo-2") },
-            )
+
+            GlassCard {
+                Text(
+                    "No other alerts right now.",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = ConfluenceColors.TextPrimary,
+                )
+                Spacer(Modifier.height(spacing.xs))
+                Text(
+                    "New confluence insights will appear here as they surface.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = ConfluenceColors.Slate,
+                )
+            }
+
+            Disclaimer(modifier = Modifier.fillMaxWidth())
         }
     }
 }
 
-@Composable
-private fun StubAlertRow(
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0B0F14)
+@Preview(showBackground = true, backgroundColor = 0xFF07090E)
 @Composable
 private fun AlertsPreview() {
     ConfluenceTheme { AlertsScreen() }
