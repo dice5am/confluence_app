@@ -76,3 +76,11 @@ Stub routes (501): `GET /v1/history`, `GET /v1/live` — reserved for later phas
 ## Out of scope (P2+)
 
 Bybit failover runtime, history store depth enforcement, live stream fan-out to Mobile/Alerts — stubs/comments only.
+## Alerts fixtures
+
+Closed candles + health for ALT golden vectors:
+
+- `services/market-data/fixtures/candles/`
+- `services/market-data/fixtures/health/`
+
+See `services/market-data/fixtures/README.md`.

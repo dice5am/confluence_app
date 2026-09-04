@@ -1,0 +1,7 @@
+{
+  "status": "disconnected",
+  "lastSourceTsMs": 1788533400000,
+  "venue": "binance",
+  "symbol": "BTCUSDT",
+  "note": "no socket / no feed \u2014 Alerts MUST suppress"
+}

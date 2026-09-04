@@ -1,0 +1,13 @@
+{
+  "status": "degraded",
+  "lastSourceTsMs": 1788533985000,
+  "venue": "binance",
+  "symbol": "BTCUSDT",
+  "gapCount": 2,
+  "activeTimeframes": [
+    "1h",
+    "4h",
+    "1d"
+  ],
+  "note": "partial TF coverage / failover in progress"
+}
