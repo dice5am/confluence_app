@@ -21,4 +21,36 @@ object ConfluenceDimens {
     val accentBar: Dp = 2.dp
     val chipRadius: Dp = 999.dp
     val pressScale = 0.98f
+
+    // Chart craft — Approach A Compose Canvas (TradingView-grade)
+    val chartMinCandleWidth: Dp = 4.dp
+    val chartMaxCandleWidth: Dp = 28.dp
+    val chartDefaultCandleWidth: Dp = 10.dp
+    val chartPlotLeftPad: Dp = 8.dp
+    val chartPriceAxisWidth: Dp = 56.dp
+    val chartPlotTopPad: Dp = 8.dp
+    val chartTimeAxisHeight: Dp = 22.dp
+    val chartBodyBloom: Dp = 2.dp
+    val chartWickStroke: Dp = 1.dp
+    val chartGridStroke: Dp = 1.dp
+    val chartHairlineStroke: Dp = 1.dp
+    val chartCrosshairStroke: Dp = 1.dp
+    val chartMinDojiBody: Dp = 1.5.dp
+    val chartAxisLabelSize: Dp = 10.dp
+    val chartTagPaddingH: Dp = 5.dp
+    val chartTagPaddingV: Dp = 3.dp
+    val chartTagCorner: Dp = 4.dp
+    val chartAxisTick: Dp = 4.dp
+    val chartMinTimeLabelGap: Dp = 56.dp
+    val chartDefaultVisibleCandles: Int = 48
+    const val chartVolumeFraction = 0.18f // V1 lock: volume pane is exactly 18% of price+volume plot
+    const val chartBodyFraction = 0.62f
+    const val chartYPadFraction = 0.06f
+    const val chartVolumeAlpha = 0.35f
+    const val chartLastPriceHairlineAlpha = 0.20f
+    const val chartLastCandleBoost = 0.14f
+    const val chartOtherCandleAlpha = 0.90f
+    const val chartBloomAlpha = 0.16f
+    const val chartBloomAlphaLast = 0.30f
+    const val chartMinVisibleCandles = 8
 }

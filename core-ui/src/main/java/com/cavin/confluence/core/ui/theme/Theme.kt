@@ -41,6 +41,7 @@ data class ChartSafeColors(
     val bear: androidx.compose.ui.graphics.Color = ConfluenceColors.Bear,
     val grid: androidx.compose.ui.graphics.Color = ConfluenceColors.Grid,
     val crosshair: androidx.compose.ui.graphics.Color = ConfluenceColors.Crosshair,
+    val lastPriceHairline: androidx.compose.ui.graphics.Color = ConfluenceColors.LastPriceHairline,
     val alertMarker: androidx.compose.ui.graphics.Color = ConfluenceColors.AlertMarker,
     val healthOk: androidx.compose.ui.graphics.Color = ConfluenceColors.HealthOk,
     val healthDegraded: androidx.compose.ui.graphics.Color = ConfluenceColors.HealthDegraded,
