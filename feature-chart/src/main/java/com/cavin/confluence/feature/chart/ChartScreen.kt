@@ -57,7 +57,8 @@ internal val DayOneTimeframes = listOf(
 
 internal val TfLabels = listOf("1m", "5m", "15m", "1h", "4h", "1D", "1W")
 
-internal const val ChartProofAsOf = "Historical snapshot · as of 2026-09-04 17:59 UTC"
+/** Mirrors packaged `md_snapshot/meta.json` cutoffUtc for screenshot chrome. Runtime uses MdSnapshotStore.bannerLabel. */
+internal const val ChartProofAsOf = "Historical snapshot · as of 2026-09-10 19:59 UTC"
 
 @Composable
 fun ChartRoute(
