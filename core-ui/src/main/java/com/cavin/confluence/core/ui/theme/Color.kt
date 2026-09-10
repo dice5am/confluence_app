@@ -49,6 +49,7 @@ object ConfluenceColors {
     val Bear = Rose
     val Grid = Color(0x0AFFFFFF) // ~4% white grid
     val Crosshair = CyberCyan
+    val LastPriceHairline = Color(0x3300F2FE) // cyberCyan @ ~20%
     val AlertMarker = Amber
     val HealthOk = Mint
     val HealthDegraded = Amber

@@ -38,8 +38,8 @@ fun HudStrip(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         HudCell("O", fmt(ohlc.open), ConfluenceColors.TextPrimary)
-        HudCell("H", fmt(ohlc.high), ConfluenceColors.TextPrimary)
-        HudCell("L", fmt(ohlc.low), ConfluenceColors.TextPrimary)
+        HudCell("H", fmt(ohlc.high), ConfluenceColors.Mint)
+        HudCell("L", fmt(ohlc.low), ConfluenceColors.Rose)
         HudCell("C", fmt(ohlc.close), closeColor)
     }
 }

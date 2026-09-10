@@ -18,9 +18,8 @@ object ChartAxisLabels {
     private val tz: TimeZone = TimeZone.getTimeZone("America/Toronto")
 
     fun formatPrice(v: Float): String = when {
-        v >= 100_000f -> String.format(Locale.US, "%.0f", v)
-        v >= 10_000f -> String.format(Locale.US, "%.1f", v)
-        v >= 1_000f -> String.format(Locale.US, "%.2f", v)
+        v >= 1_000f -> String.format(Locale.US, "%,.0f", v)
+        v >= 100f -> String.format(Locale.US, "%.2f", v)
         else -> String.format(Locale.US, "%.4f", v)
     }
 

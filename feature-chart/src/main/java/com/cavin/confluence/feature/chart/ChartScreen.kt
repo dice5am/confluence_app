@@ -1,5 +1,6 @@
 package com.cavin.confluence.feature.chart
 
+import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,22 +26,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cavin.confluence.core.ui.components.AppButton
 import com.cavin.confluence.core.ui.components.AppButtonStyle
-import com.cavin.confluence.core.ui.components.AppSectionLabel
 import com.cavin.confluence.core.ui.components.Disclaimer
 import com.cavin.confluence.core.ui.components.GlassCard
 import com.cavin.confluence.core.ui.components.HudOhlc
 import com.cavin.confluence.core.ui.components.HudStrip
 import com.cavin.confluence.core.ui.components.SegmentedControl
+import com.cavin.confluence.core.ui.components.SnapshotBadge
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceDimens
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
 import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
+import com.cavin.confluence.data.fake.FakeFixtures
 import com.cavin.confluence.data.model.Candle
 import com.cavin.confluence.data.model.HealthStatus
 import com.cavin.confluence.data.model.Timeframe
@@ -58,7 +61,7 @@ fun ChartRoute(
     alertId: String? = null,
     onBack: () -> Unit = {},
 ) {
-    val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as android.app.Application
+    val app = LocalContext.current.applicationContext as Application
     val navTf = timeframe?.takeIf { it.isNotBlank() }?.let {
         runCatching { Timeframe.fromWire(it) }.getOrNull()
     }
@@ -90,6 +93,7 @@ fun ChartScreen(
     val spacing = ConfluenceThemeAccess.spacing
     val selectedIndex = DayOneTimeframes.indexOf(state.timeframe).coerceAtLeast(0)
     val candle = state.crosshair ?: state.candles.lastOrNull()
+    val tfLabel = TfLabels.getOrElse(selectedIndex) { state.timeframe.wire }
 
     Scaffold(
         topBar = {
@@ -103,7 +107,7 @@ fun ChartScreen(
                             color = ConfluenceColors.TextPrimary,
                         )
                         Text(
-                            "Insight chart · ${state.timeframe.wire}",
+                            "Insight chart · $tfLabel",
                             style = MaterialTheme.typography.labelSmall,
                             color = ConfluenceColors.Slate,
                         )
@@ -145,7 +149,6 @@ fun ChartScreen(
                 .padding(horizontal = spacing.lg, vertical = spacing.sm),
             verticalArrangement = Arrangement.spacedBy(spacing.sm),
         ) {
-            AppSectionLabel("Timeframe", accent = true)
             SegmentedControl(
                 options = TfLabels,
                 selectedIndex = selectedIndex,
@@ -155,15 +158,16 @@ fun ChartScreen(
             val banner = state.snapshotBanner
                 ?: state.health?.note?.takeIf { it.startsWith("Historical snapshot") }
             if (banner != null) {
-                GlassCard(
-                    accentBorder = false,
-                    glow = false,
-                    contentPadding = ConfluenceDimens.glassPaddingTight,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.sm),
                 ) {
+                    SnapshotBadge(label = "Snapshot")
                     Text(
                         banner,
                         style = MaterialTheme.typography.labelSmall,
-                        color = ConfluenceColors.TextSecondary,
+                        color = ConfluenceColors.Slate,
                     )
                 }
             }
@@ -177,7 +181,6 @@ fun ChartScreen(
                 onRetry = onRetry,
             )
 
-            AppSectionLabel("OHLC")
             HudStrip(
                 ohlc = candle?.let {
                     HudOhlc(open = it.open, high = it.high, low = it.low, close = it.close)
@@ -263,10 +266,26 @@ private fun ChartStatusBanner(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF07090E)
+@Preview(showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 780)
 @Composable
 private fun ChartPreview() {
     ConfluenceTheme {
         ChartScreen(state = ChartUiState(loading = false, candles = emptyList()))
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 780)
+@Composable
+private fun ChartPreviewPopulated() {
+    ConfluenceTheme {
+        ChartScreen(
+            state = ChartUiState(
+                loading = false,
+                candles = FakeFixtures.sampleClosedCandles(count = 80, timeframe = Timeframe.W1),
+                timeframe = Timeframe.W1,
+                snapshotBanner = "Historical snapshot · as of 2025-01-01T00:00:00Z",
+                showVolume = true,
+            ),
+        )
     }
 }
