@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -15,6 +16,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -41,10 +44,24 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
+ * Optional viewport seed for previews / screenshot proof.
+ * Production ChartScreen uses defaults; pan/pinch still own the live viewport.
+ * [crosshairIndex] paints the same overlay as a long-press (X1 is still
+ * long-press-only for users).
+ */
+data class ChartViewportSeed(
+    val candleWidth: Dp = ConfluenceDimens.chartDefaultCandleWidth,
+    val visibleCount: Int = ConfluenceDimens.chartDefaultVisibleCandles,
+    val crosshairIndex: Int? = null,
+)
+
+/**
  * Compose Canvas OHLC + volume — Approach A craft (TradingView-grade).
  *
  * Right price axis + bottom time axis recompute from the visible window
- * (`seriesKey` / pan / zoom). Long-press crosshair snaps to candle center.
+ * (`seriesKey` / pan / zoom). Crosshair is **long-press only** (X1) and snaps
+ * to candle center. Last-price hairline is always on (H1); Snapshot chrome
+ * remains the honesty signal that this is frozen history.
  */
 @Composable
 fun CandleChart(
@@ -53,6 +70,7 @@ fun CandleChart(
     showVolume: Boolean = true,
     seriesKey: String = "",
     onCrosshairCandle: (Candle?) -> Unit = {},
+    viewportSeed: ChartViewportSeed = ChartViewportSeed(),
 ) {
     if (candles.isEmpty()) return
 
@@ -80,13 +98,18 @@ fun CandleChart(
     val minLabelGap = with(density) { dimens.chartMinTimeLabelGap.toPx() }
 
     var startOffset by remember(seriesKey) {
-        mutableFloatStateOf(ChartGeometry.initialStartOffset(candles.size))
+        mutableFloatStateOf(ChartGeometry.initialStartOffset(candles.size, viewportSeed.visibleCount))
     }
     var candleWidthPx by remember(seriesKey) {
-        mutableFloatStateOf(with(density) { dimens.chartDefaultCandleWidth.toPx() })
+        mutableFloatStateOf(with(density) { viewportSeed.candleWidth.toPx() })
     }
-    var crosshairIndex by remember(seriesKey) { mutableStateOf<Int?>(null) }
+    var crosshairIndex by remember(seriesKey) { mutableStateOf(viewportSeed.crosshairIndex) }
     var drawEpoch by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(viewportSeed.crosshairIndex, candles) {
+        val idx = viewportSeed.crosshairIndex ?: return@LaunchedEffect
+        onCrosshairCandle(candles.getOrNull(idx))
+    }
 
     val axisPaint = remember(axisLabelPx) {
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -111,6 +134,7 @@ fun CandleChart(
     Canvas(
         modifier = modifier
             .fillMaxSize()
+            .testTag("candleChart")
             .onSizeChanged { canvasWidthPx = it.width.toFloat() }
             .pointerInput(seriesKey, candles.size) {
                 detectTransformGestures { centroid, pan, zoom, _ ->
@@ -338,21 +362,27 @@ fun CandleChart(
         )
         axisPaint.textAlign = Paint.Align.CENTER
         val timeY = size.height - 4f
+        val labelGap = 10f
+        var lastLabelRight = panes.plotLeft
         for (slot in slots) {
             val idx = win.startIndex + slot
             val c = candles.getOrNull(idx) ?: continue
             val cx = xSlot(idx)
             if (cx < panes.plotLeft || cx > panes.plotRight) continue
+            val label = ChartAxisLabels.formatTime(c.openTimeMs, tf)
+            val tw = axisPaint.measureText(label)
+            val left = cx - tw / 2f
+            val right = cx + tw / 2f
+            if (left < lastLabelRight + labelGap) continue
+            if (right > panes.plotRight + axisTick) continue
             drawLine(
                 color = ConfluenceColors.Outline,
                 start = Offset(cx, panes.volBottom),
                 end = Offset(cx, panes.volBottom + axisTick),
                 strokeWidth = gridStroke,
             )
-            val label = ChartAxisLabels.formatTime(c.openTimeMs, tf)
-            val tw = axisPaint.measureText(label)
-            val textX = cx.coerceIn(panes.plotLeft + tw / 2f, panes.plotRight - tw / 2f)
-            drawContext.canvas.nativeCanvas.drawText(label, textX, timeY, axisPaint)
+            drawContext.canvas.nativeCanvas.drawText(label, cx, timeY, axisPaint)
+            lastLabelRight = right
         }
         axisPaint.textAlign = Paint.Align.LEFT
 

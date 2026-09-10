@@ -23,6 +23,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +42,7 @@ import com.cavin.confluence.core.ui.components.SegmentedControl
 import com.cavin.confluence.core.ui.components.SnapshotBadge
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceDimens
+import com.cavin.confluence.core.ui.theme.ConfluenceMono
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
 import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
 import com.cavin.confluence.data.fake.FakeFixtures
@@ -48,12 +50,14 @@ import com.cavin.confluence.data.model.Candle
 import com.cavin.confluence.data.model.HealthStatus
 import com.cavin.confluence.data.model.Timeframe
 
-private val DayOneTimeframes = listOf(
+internal val DayOneTimeframes = listOf(
     Timeframe.M1, Timeframe.M5, Timeframe.M15,
     Timeframe.H1, Timeframe.H4, Timeframe.D1, Timeframe.W1,
 )
 
-private val TfLabels = listOf("1m", "5m", "15m", "1h", "4h", "1D", "1W")
+internal val TfLabels = listOf("1m", "5m", "15m", "1h", "4h", "1D", "1W")
+
+internal const val ChartProofAsOf = "Historical snapshot · as of 2026-09-04 17:59 UTC"
 
 @Composable
 fun ChartRoute(
@@ -89,11 +93,14 @@ fun ChartScreen(
     onToggleVolume: () -> Unit = {},
     onRetry: () -> Unit = {},
     onBack: () -> Unit = {},
+    viewportSeed: ChartViewportSeed = ChartViewportSeed(),
 ) {
     val spacing = ConfluenceThemeAccess.spacing
     val selectedIndex = DayOneTimeframes.indexOf(state.timeframe).coerceAtLeast(0)
     val candle = state.crosshair ?: state.candles.lastOrNull()
     val tfLabel = TfLabels.getOrElse(selectedIndex) { state.timeframe.wire }
+    val banner = state.snapshotBanner
+        ?: state.health?.note?.takeIf { it.startsWith("Historical snapshot") }
 
     Scaffold(
         topBar = {
@@ -120,7 +127,11 @@ fun ChartScreen(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(end = spacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
                     ) {
+                        if (banner != null) {
+                            SnapshotBadge(label = "Snapshot", pulse = false)
+                        }
                         Text(
                             "Vol",
                             style = MaterialTheme.typography.labelSmall,
@@ -155,19 +166,21 @@ fun ChartScreen(
                 onSelect = { idx -> onSelectTf(DayOneTimeframes[idx]) },
             )
 
-            val banner = state.snapshotBanner
-                ?: state.health?.note?.takeIf { it.startsWith("Historical snapshot") }
             if (banner != null) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(ConfluenceDimens.chipRadius))
+                        .background(ConfluenceColors.Mint.copy(alpha = 0.12f))
+                        .padding(horizontal = spacing.sm, vertical = spacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(spacing.sm),
                 ) {
-                    SnapshotBadge(label = "Snapshot")
+                    SnapshotBadge(label = "Snapshot", pulse = false)
                     Text(
                         banner,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ConfluenceColors.Slate,
+                        style = ConfluenceMono.Caption,
+                        color = ConfluenceColors.Mint,
                     )
                 }
             }
@@ -210,6 +223,7 @@ fun ChartScreen(
                         seriesKey = "${state.venue.wire}:${state.timeframe.wire}",
                         modifier = Modifier.fillMaxSize(),
                         onCrosshairCandle = onCrosshair,
+                        viewportSeed = viewportSeed,
                     )
                     else -> Text(
                         "No series for ${state.timeframe.wire}",
@@ -266,6 +280,23 @@ private fun ChartStatusBanner(
     }
 }
 
+internal fun chartProofUiState(
+    timeframe: Timeframe,
+    count: Int = 80,
+    showVolume: Boolean = true,
+    crosshair: Candle? = null,
+): ChartUiState {
+    val candles = FakeFixtures.sampleClosedCandles(count = count, timeframe = timeframe)
+    return ChartUiState(
+        loading = false,
+        candles = candles,
+        timeframe = timeframe,
+        snapshotBanner = ChartProofAsOf,
+        showVolume = showVolume,
+        crosshair = crosshair ?: candles.lastOrNull(),
+    )
+}
+
 @Preview(showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 780)
 @Composable
 private fun ChartPreview() {
@@ -274,18 +305,48 @@ private fun ChartPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 780)
+@Preview(name = "zoomed out + volume", showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 780)
 @Composable
-private fun ChartPreviewPopulated() {
+internal fun ChartPreviewZoomedOut() {
+    val state = remember { chartProofUiState(Timeframe.W1, count = 120) }
     ConfluenceTheme {
         ChartScreen(
-            state = ChartUiState(
-                loading = false,
-                candles = FakeFixtures.sampleClosedCandles(count = 80, timeframe = Timeframe.W1),
-                timeframe = Timeframe.W1,
-                snapshotBanner = "Historical snapshot · as of 2025-01-01T00:00:00Z",
-                showVolume = true,
-            ),
+            state = state,
+            viewportSeed = ChartViewportSeed(candleWidth = ConfluenceDimens.chartMinCandleWidth),
         )
+    }
+}
+
+@Preview(name = "zoomed in bull+bear", showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 780)
+@Composable
+internal fun ChartPreviewZoomedIn() {
+    val state = remember { chartProofUiState(Timeframe.H1, count = 48) }
+    ConfluenceTheme {
+        ChartScreen(
+            state = state,
+            viewportSeed = ChartViewportSeed(candleWidth = ConfluenceDimens.chartMaxCandleWidth, visibleCount = 12),
+        )
+    }
+}
+
+@Preview(name = "crosshair on", showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 780)
+@Composable
+internal fun ChartPreviewCrosshair() {
+    val state = remember { chartProofUiState(Timeframe.H1, count = 48) }
+    val idx = state.candles.lastIndex - 4
+    ConfluenceTheme {
+        ChartScreen(
+            state = state.copy(crosshair = state.candles.getOrNull(idx)),
+            viewportSeed = ChartViewportSeed(crosshairIndex = idx),
+        )
+    }
+}
+
+@Preview(name = "TF 1D switched", showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 780)
+@Composable
+internal fun ChartPreviewTfSwitched() {
+    val state = remember { chartProofUiState(Timeframe.D1, count = 64) }
+    ConfluenceTheme {
+        ChartScreen(state = state)
     }
 }

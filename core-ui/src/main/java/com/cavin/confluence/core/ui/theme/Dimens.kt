@@ -43,7 +43,7 @@ object ConfluenceDimens {
     val chartAxisTick: Dp = 4.dp
     val chartMinTimeLabelGap: Dp = 56.dp
     val chartDefaultVisibleCandles: Int = 48
-    const val chartVolumeFraction = 0.18f
+    const val chartVolumeFraction = 0.18f // V1 lock: volume pane is exactly 18% of price+volume plot
     const val chartBodyFraction = 0.62f
     const val chartYPadFraction = 0.06f
     const val chartVolumeAlpha = 0.35f

@@ -10,6 +10,9 @@ import kotlin.math.min
  * Pure layout math for the Compose Canvas chart (Approach A craft).
  *
  * Kept off the draw scope so viewport / snap / pane DoD can be unit-tested.
+ *
+ * V1 lock: [volumeFraction] is **exactly 18%** of the price+volume plot
+ * (volume sits under price; axis gutters are outside this split).
  */
 object ChartGeometry {
     val volumeFraction: Float get() = ConfluenceDimens.chartVolumeFraction
