@@ -48,6 +48,8 @@ import com.cavin.confluence.data.fake.FakeFixtures
 import com.cavin.confluence.data.snapshot.MdSnapshotStore
 import java.util.Locale
 
+private const val HomeConfScore = 62
+
 /**
  * Home hub — F1 Plasma Acrylic / B1 Ice + Bright Blue.
  * Dock owns Chart/Alerts; no NAVIGATE stack.
@@ -85,19 +87,25 @@ fun HomeScreen(
             .confluenceScreenInner(),
         verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.stackGap),
     ) {
-        Column {
-            Text(
-                "ICE + BRIGHT BLUE",
-                style = ConfluenceType.Eyebrow,
-                color = ConfluenceColors.Bloom,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(spacing.xxs))
-            Text(
-                "Blue base · brighter ice-blue accent (no warm hues)",
-                style = ConfluenceTypography.labelSmall,
-                color = ConfluenceColors.Muted,
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
+            Column {
+                Text(
+                    "ICE + BRIGHT BLUE",
+                    style = ConfluenceType.Eyebrow,
+                    color = ConfluenceColors.Bloom,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(spacing.xxs))
+                Text(
+                    "Blue base · brighter ice-blue accent (no warm hues)",
+                    style = ConfluenceTypography.labelSmall,
+                    color = ConfluenceColors.Muted,
+                )
+            }
+
+            if (state is HomeUiState.Ready) {
+                ReadyChipRow(state = state, onOpenAlerts = onOpenAlerts)
+            }
         }
 
         when (state) {
@@ -108,27 +116,19 @@ fun HomeScreen(
                 state = state,
                 spacing = spacing,
                 onOpenChart = onOpenChart,
-                onOpenAlerts = onOpenAlerts,
             )
         }
     }
 }
 
 @Composable
-private fun ReadyContent(
+private fun ReadyChipRow(
     state: HomeUiState.Ready,
-    spacing: Spacing,
-    onOpenChart: () -> Unit,
     onOpenAlerts: () -> Unit,
 ) {
-    val quote = state.quote
-    val confScore = 62
-    val asOf = quote.health.note?.takeIf { it.startsWith("Historical snapshot") }
-        ?: MdSnapshotStore.bannerLabel
-
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(ConfluenceLayout.inlineGap),
     ) {
         AppChip(
             label = "SNAP",
@@ -137,7 +137,7 @@ private fun ReadyContent(
             modifier = Modifier.weight(1f),
         )
         AppChip(
-            label = "CONF $confScore",
+            label = "CONF $HomeConfScore",
             selected = false,
             onClick = {},
             modifier = Modifier.weight(1f),
@@ -149,6 +149,18 @@ private fun ReadyContent(
             modifier = Modifier.weight(1f),
         )
     }
+}
+
+@Composable
+private fun ReadyContent(
+    state: HomeUiState.Ready,
+    spacing: Spacing,
+    onOpenChart: () -> Unit,
+) {
+    val quote = state.quote
+    val confScore = HomeConfScore
+    val asOf = quote.health.note?.takeIf { it.startsWith("Historical snapshot") }
+        ?: MdSnapshotStore.bannerLabel
 
     GlassCard(accentBorder = true, glow = true) {
         Column(

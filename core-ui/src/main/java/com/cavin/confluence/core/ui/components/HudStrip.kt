@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceDimens
+import com.cavin.confluence.core.ui.theme.ConfluenceLayout
 import com.cavin.confluence.core.ui.theme.ConfluenceMono
 import com.cavin.confluence.core.ui.theme.ConfluenceType
 import com.cavin.confluence.core.ui.theme.Spacing
@@ -42,7 +43,7 @@ fun HudStrip(
     val closeColor = if (ohlc.close >= ohlc.open) ConfluenceColors.Pos else ConfluenceColors.Neg
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(ConfluenceLayout.inlineGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         HudCell("O", fmt(ohlc.open), ConfluenceColors.Text, Modifier.weight(1f))
