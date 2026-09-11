@@ -9,11 +9,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.cavin.confluence.core.ui.components.AlertAccent
 import com.cavin.confluence.core.ui.components.AlertRow
+import com.cavin.confluence.core.ui.components.ConfluenceBrandLockup
 import com.cavin.confluence.core.ui.components.Disclaimer
 import com.cavin.confluence.core.ui.components.GlassCard
 import com.cavin.confluence.core.ui.components.PreviewAppShell
@@ -44,19 +44,10 @@ fun AlertsScreen(
             .confluenceScreenInner(),
         verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.stackGap),
     ) {
-        Column {
-            Text(
-                "Insight alerts",
-                style = ConfluenceTypography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = ConfluenceColors.Text,
-            )
-            Text(
-                "Advisory only · Ice + Bright Blue",
-                style = ConfluenceTypography.labelSmall,
-                color = ConfluenceColors.Muted,
-            )
-        }
+        ConfluenceBrandLockup(
+            title = "Insight alerts",
+            subtitle = "Advisory only · Ice + Bright Blue",
+        )
 
         AlertRow(
             title = "Sample confluence",
