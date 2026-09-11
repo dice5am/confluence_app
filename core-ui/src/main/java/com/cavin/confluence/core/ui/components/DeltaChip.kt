@@ -22,9 +22,9 @@ fun DeltaChip(
 ) {
     val shape = RoundedCornerShape(ConfluenceDimens.chipRadius)
     val (label, color) = when {
-        percent == null -> "—%" to ConfluenceColors.Slate
-        percent >= 0 -> String.format(Locale.US, "%+.2f%%", percent) to ConfluenceColors.Mint
-        else -> String.format(Locale.US, "%+.2f%%", percent) to ConfluenceColors.Rose
+        percent == null -> "—%" to ConfluenceColors.Dim
+        percent >= 0 -> String.format(Locale.US, "%+.2f%%", percent) to ConfluenceColors.Pos
+        else -> String.format(Locale.US, "%+.2f%%", percent) to ConfluenceColors.Neg
     }
     Box(
         modifier = modifier

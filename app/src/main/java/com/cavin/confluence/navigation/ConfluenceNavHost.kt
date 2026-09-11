@@ -4,10 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -23,8 +19,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.cavin.confluence.core.ui.components.ConfluenceDockItems
 import com.cavin.confluence.core.ui.components.FloatingDock
-import com.cavin.confluence.core.ui.components.FloatingDockItem
 import com.cavin.confluence.core.ui.components.GlassCard
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
@@ -43,18 +39,12 @@ fun ConfluenceNavHost() {
         else -> "home"
     }
 
-    val dockItems = listOf(
-        FloatingDockItem("home", "Home", Icons.Outlined.Home),
-        FloatingDockItem("chart", "Chart", Icons.Outlined.ShowChart),
-        FloatingDockItem("alerts", "Alerts", Icons.Outlined.Notifications),
-    )
-
     Scaffold(
         containerColor = ConfluenceColors.Void,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             FloatingDock(
-                items = dockItems,
+                items = ConfluenceDockItems,
                 selectedId = selectedId,
                 onSelect = { id ->
                     val target = when (id) {
@@ -172,16 +162,16 @@ private fun SettingsScreen() {
             .padding(spacing.lg),
         contentAlignment = Alignment.Center,
     ) {
-        GlassCard {
+        GlassCard(glow = true, accentBorder = true) {
             Text(
                 text = "Settings",
                 style = MaterialTheme.typography.titleLarge,
-                color = ConfluenceColors.TextPrimary,
+                color = ConfluenceColors.Text,
             )
             Text(
                 text = "Preferences will live here.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = ConfluenceColors.Slate,
+                color = ConfluenceColors.Dim,
             )
         }
     }

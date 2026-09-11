@@ -10,19 +10,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceDimens
+import com.cavin.confluence.core.ui.theme.ConfluenceType
 import com.cavin.confluence.core.ui.theme.Spacing
 
 @Composable
@@ -37,43 +35,42 @@ fun SegmentedControl(
         modifier = modifier
             .fillMaxWidth()
             .clip(barShape)
-            .background(ConfluenceColors.SurfaceGlassSolid.copy(alpha = 0.65f), barShape)
+            .background(ConfluenceColors.VoidElevated.copy(alpha = 0.85f), barShape)
             .border(ConfluenceDimens.glassBorder, ConfluenceColors.BorderSubtle, barShape)
             .padding(Spacing.xs),
     ) {
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
             val bg by animateColorAsState(
-                if (selected) ConfluenceColors.CyberCyan.copy(alpha = 0.22f) else ConfluenceColors.Void.copy(alpha = 0f),
+                if (selected) ConfluenceColors.Plasma.copy(alpha = 0.25f) else ConfluenceColors.Void.copy(alpha = 0f),
                 tween(200),
                 label = "seg$index",
             )
             val fg by animateColorAsState(
-                if (selected) ConfluenceColors.CyberCyan else ConfluenceColors.TextSecondary,
+                if (selected) ConfluenceColors.Ice else ConfluenceColors.Muted,
                 tween(200),
                 label = "segFg$index",
             )
-            val segShape = RoundedCornerShape(12.dp)
+            val segShape = RoundedCornerShape(10.dp)
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .clip(segShape)
-                    .drawBehind {
-                        if (selected) {
-                            drawRoundRect(
-                                color = ConfluenceColors.CyberCyan.copy(alpha = 0.18f),
-                                cornerRadius = CornerRadius(12.dp.toPx()),
-                            )
-                        }
-                    }
                     .background(bg, segShape)
+                    .then(
+                        if (selected) {
+                            Modifier.border(ConfluenceDimens.glassBorder, ConfluenceColors.Plasma, segShape)
+                        } else {
+                            Modifier
+                        },
+                    )
                     .clickable { onSelect(index) }
                     .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = ConfluenceType.Telemetry,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                     color = fg,
                 )

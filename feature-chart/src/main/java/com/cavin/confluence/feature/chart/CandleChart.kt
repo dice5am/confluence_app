@@ -393,8 +393,8 @@ fun CandleChart(
                 anchorY = lastY.coerceIn(panes.priceTop, panes.priceBottom),
                 paint = tagPaint,
                 background = ConfluenceColors.VoidElevated,
-                textColor = ConfluenceColors.CyberCyan,
-                border = ConfluenceColors.CyberCyan.copy(alpha = 0.55f),
+                textColor = ConfluenceColors.Plasma,
+                border = ConfluenceColors.Plasma.copy(alpha = 0.55f),
                 paddingH = tagPadH,
                 paddingV = tagPadV,
                 corner = tagCorner,
@@ -431,9 +431,9 @@ fun CandleChart(
                     anchorX = panes.plotRight + axisTick / 2f,
                     anchorY = cy,
                     paint = tagPaint,
-                    background = ConfluenceColors.CyberCyan,
+                    background = ConfluenceColors.Plasma,
                     textColor = ConfluenceColors.OnPrimary,
-                    border = ConfluenceColors.CyberCyan,
+                    border = ConfluenceColors.Plasma,
                     paddingH = tagPadH,
                     paddingV = tagPadV,
                     corner = tagCorner,
@@ -448,8 +448,8 @@ fun CandleChart(
                     anchorY = panes.volBottom + bottomPad / 2f,
                     paint = tagPaint,
                     background = ConfluenceColors.VoidElevated,
-                    textColor = ConfluenceColors.CyberCyan,
-                    border = ConfluenceColors.CyberCyan,
+                    textColor = ConfluenceColors.Plasma,
+                    border = ConfluenceColors.Plasma,
                     paddingH = tagPadH,
                     paddingV = tagPadV,
                     corner = tagCorner,
@@ -520,7 +520,7 @@ private fun DrawScope.drawAxisTag(
     drawContext.canvas.nativeCanvas.drawText(text, left + tagW / 2f, textY, paint)
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 320)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 320)
 @Composable
 private fun CandleChartPreview() {
     ConfluenceTheme {

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +23,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceDimens
+import com.cavin.confluence.core.ui.theme.ConfluenceType
 import com.cavin.confluence.core.ui.theme.Spacing
 
 @Composable
@@ -48,7 +48,7 @@ fun SnapshotBadge(
     Row(
         modifier = modifier
             .clip(shape)
-            .background(ConfluenceColors.Mint.copy(alpha = 0.12f), shape)
+            .background(ConfluenceColors.Plasma.copy(alpha = 0.12f), shape)
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -58,12 +58,12 @@ fun SnapshotBadge(
                 .size(6.dp)
                 .graphicsLayer { this.alpha = alpha }
                 .clip(CircleShape)
-                .background(ConfluenceColors.Mint),
+                .background(ConfluenceColors.Bloom),
         )
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = ConfluenceColors.Mint,
+            style = ConfluenceType.Telemetry,
+            color = ConfluenceColors.Ice,
         )
     }
 }

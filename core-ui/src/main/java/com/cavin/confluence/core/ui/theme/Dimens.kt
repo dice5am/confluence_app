@@ -5,18 +5,25 @@ import androidx.compose.ui.unit.dp
 
 /** Dimens tokens — screens use these, not magic numbers. */
 object ConfluenceDimens {
-    val glassCorner: Dp = 18.dp
+    val glassCorner: Dp = 14.dp
     val glassBorder: Dp = 1.dp
     val glassBlur: Dp = 18.dp
     val glassPadding: Dp = 16.dp
     val glassPaddingTight: Dp = 12.dp
-    val dockCorner: Dp = 28.dp
+    val acrylicUnderOffset: Dp = 7.dp
+    val bracketLength: Dp = 16.dp
+    val bracketStroke: Dp = 1.5.dp
+    val plasmaGlowPad: Dp = 12.dp
+    val focusRing: Dp = 3.dp
+    val dockCorner: Dp = 14.dp
+    val dockCellCorner: Dp = 10.dp
     val dockElevationGap: Dp = 16.dp
-    val dockHeight: Dp = 64.dp
+    val dockHeight: Dp = 60.dp
     val dockIcon: Dp = 22.dp
-    val heroPriceShadow: Dp = 30.dp
+    val heroPriceShadow: Dp = 24.dp
     val sparklineHeight: Dp = 64.dp
     val meterHeight: Dp = 88.dp
+    val meterBarHeight: Dp = 6.dp
     val hudDivider: Dp = 1.dp
     val accentBar: Dp = 2.dp
     val chipRadius: Dp = 999.dp
