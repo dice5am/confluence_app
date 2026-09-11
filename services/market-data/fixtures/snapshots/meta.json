@@ -2,49 +2,49 @@
   "symbol": "BTCUSDT",
   "venue": "binance",
   "source": "data-api.binance.vision",
-  "fetchedAtMs": 1789070956947,
+  "fetchedAtMs": 1789141224003,
   "intervals": {
     "1m": {
       "count": 799,
-      "firstOpenTimeMs": 1789023000000,
-      "lastOpenTimeMs": 1789070880000,
-      "lastCloseTimeMs": 1789070939999,
-      "lastClose": 77248.01
+      "firstOpenTimeMs": 1789093260000,
+      "lastOpenTimeMs": 1789141140000,
+      "lastCloseTimeMs": 1789141199999,
+      "lastClose": 78780.01
     },
     "5m": {
       "count": 499,
-      "firstOpenTimeMs": 1788921000000,
-      "lastOpenTimeMs": 1789070400000,
-      "lastCloseTimeMs": 1789070699999,
-      "lastClose": 77172.0
+      "firstOpenTimeMs": 1788991500000,
+      "lastOpenTimeMs": 1789140900000,
+      "lastCloseTimeMs": 1789141199999,
+      "lastClose": 78780.01
     },
     "15m": {
       "count": 499,
-      "firstOpenTimeMs": 1788621300000,
-      "lastOpenTimeMs": 1789069500000,
-      "lastCloseTimeMs": 1789070399999,
-      "lastClose": 77160.83
+      "firstOpenTimeMs": 1788691500000,
+      "lastOpenTimeMs": 1789139700000,
+      "lastCloseTimeMs": 1789140599999,
+      "lastClose": 78720.76
     },
     "1h": {
       "count": 499,
-      "firstOpenTimeMs": 1787274000000,
-      "lastOpenTimeMs": 1789066800000,
-      "lastCloseTimeMs": 1789070399999,
-      "lastClose": 77160.83
+      "firstOpenTimeMs": 1787342400000,
+      "lastOpenTimeMs": 1789135200000,
+      "lastCloseTimeMs": 1789138799999,
+      "lastClose": 78798.51
     },
     "4h": {
       "count": 399,
-      "firstOpenTimeMs": 1783324800000,
-      "lastOpenTimeMs": 1789056000000,
-      "lastCloseTimeMs": 1789070399999,
-      "lastClose": 77160.83
+      "firstOpenTimeMs": 1783382400000,
+      "lastOpenTimeMs": 1789113600000,
+      "lastCloseTimeMs": 1789127999999,
+      "lastClose": 77036.12
     },
     "1d": {
       "count": 399,
-      "firstOpenTimeMs": 1754524800000,
-      "lastOpenTimeMs": 1788912000000,
-      "lastCloseTimeMs": 1788998399999,
-      "lastClose": 78306.43
+      "firstOpenTimeMs": 1754611200000,
+      "lastOpenTimeMs": 1788998400000,
+      "lastCloseTimeMs": 1789084799999,
+      "lastClose": 76568.72
     },
     "1w": {
       "count": 199,
@@ -54,6 +54,6 @@
       "lastClose": 80341.83
     }
   },
-  "cutoffMs": 1789070399999,
-  "cutoffUtc": "2026-09-10 19:59 UTC"
+  "cutoffMs": 1789138799999,
+  "cutoffUtc": "2026-09-11 14:59 UTC"
 }
