@@ -4,6 +4,7 @@
     <!-- Arch-B: network for Market Data API later; no exchange SDKs. Phase 1 fixtures are offline. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- TODO(design): swap ic_launcher_foreground when Designer delivers the brand icon. -->
     <application
         android:name=".ConfluenceApp"
         android:allowBackup="true"

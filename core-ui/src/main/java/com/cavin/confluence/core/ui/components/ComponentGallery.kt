@@ -6,10 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,7 +22,7 @@ import com.cavin.confluence.core.ui.theme.ConfluenceLayout
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
 import com.cavin.confluence.core.ui.theme.ConfluenceType
 import com.cavin.confluence.core.ui.theme.ConfluenceTypography
-import com.cavin.confluence.core.ui.theme.Spacing
+import com.cavin.confluence.core.ui.theme.confluenceScreenInner
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -42,64 +40,79 @@ fun ComponentGallery() {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(ConfluenceLayout.screenGutter),
+                .padding(horizontal = ConfluenceLayout.outerGutter)
+                .confluenceScreenInner(
+                    top = ConfluenceLayout.screenTop,
+                    bottom = ConfluenceLayout.screenBottom,
+                ),
             verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.stackGap),
         ) {
-            Text(
-                "B1 · ICE + BRIGHT BLUE",
-                style = ConfluenceType.Eyebrow,
-                color = ConfluenceColors.Bloom,
-            )
-            Text(
-                "void · plasma · bloom · acrylic · bracket",
-                style = ConfluenceTypography.labelSmall,
-                color = ConfluenceColors.Muted,
-            )
-
-            Text("BUTTONS", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                AppButton(onClick = {}, style = AppButtonStyle.Primary) { Text("Default") }
-                AppButton(onClick = {}, style = AppButtonStyle.Secondary) { Text("Pressed") }
-                AppButton(onClick = {}, style = AppButtonStyle.Ghost) { Text("Focus") }
-                AppButton(onClick = {}, style = AppButtonStyle.Primary, enabled = false) { Text("Disabled") }
-            }
-
-            Text("CHIPS", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                AppChip("Default", selected = selectedChip == 0, onClick = { selectedChip = 0 })
-                AppChip("Selected", selected = selectedChip == 1, onClick = { selectedChip = 1 })
-                AppChip("Acrylic", selected = false, onClick = {}, accent = AppChipAccent.Acrylic)
-            }
-
-            Text("CARD / LAYER", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
-            GlassCard(glow = true, accentBorder = true) {
+            Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
                 Text(
-                    "Blue plasma face · accent brackets · acrylic under-layer",
-                    style = ConfluenceTypography.titleMedium,
-                    color = ConfluenceColors.Text,
+                    "B1 · ICE + BRIGHT BLUE",
+                    style = ConfluenceType.Eyebrow,
+                    color = ConfluenceColors.Bloom,
+                )
+                Text(
+                    "void · plasma · bloom · acrylic · bracket",
+                    style = ConfluenceTypography.labelSmall,
+                    color = ConfluenceColors.Muted,
                 )
             }
 
-            Text("INPUTS", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
-            AppTextField(value = inputDefault, onValueChange = { inputDefault = it }, placeholder = "Default")
-            AppTextField(value = inputFocus, onValueChange = { inputFocus = it })
-            AppTextField(value = inputError, onValueChange = { inputError = it }, isError = true)
+            Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
+                Text("BUTTONS", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(ConfluenceLayout.inlineGap),
+                    verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.inlineGap),
+                ) {
+                    AppButton(onClick = {}, style = AppButtonStyle.Primary) { Text("Default") }
+                    AppButton(onClick = {}, style = AppButtonStyle.Secondary) { Text("Pressed") }
+                    AppButton(onClick = {}, style = AppButtonStyle.Ghost) { Text("Focus") }
+                    AppButton(onClick = {}, style = AppButtonStyle.Primary, enabled = false) { Text("Disabled") }
+                }
+            }
 
-            Text("DOCK", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
-            FloatingDock(
-                items = ConfluenceDockItems,
-                selectedId = "home",
-                onSelect = {},
-                gutter = false,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
+                Text("CHIPS", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(ConfluenceLayout.inlineGap),
+                    verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.inlineGap),
+                ) {
+                    AppChip("Default", selected = selectedChip == 0, onClick = { selectedChip = 0 })
+                    AppChip("Selected", selected = selectedChip == 1, onClick = { selectedChip = 1 })
+                    AppChip("Acrylic", selected = false, onClick = {}, accent = AppChipAccent.Acrylic)
+                }
+            }
 
-            Spacer(Modifier.height(Spacing.sm))
+            Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
+                Text("CARD / LAYER", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
+                GlassCard(glow = true, accentBorder = true) {
+                    Text(
+                        "Blue plasma face · accent brackets · acrylic under-layer",
+                        style = ConfluenceTypography.titleMedium,
+                        color = ConfluenceColors.Text,
+                    )
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
+                Text("INPUTS", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
+                AppTextField(value = inputDefault, onValueChange = { inputDefault = it }, placeholder = "Default")
+                AppTextField(value = inputFocus, onValueChange = { inputFocus = it })
+                AppTextField(value = inputError, onValueChange = { inputError = it }, isError = true)
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
+                Text("DOCK", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
+                FloatingDock(
+                    items = ConfluenceDockItems,
+                    selectedId = "home",
+                    onSelect = {},
+                    gutter = false,
+                )
+            }
+
             Disclaimer()
         }
     }

@@ -56,6 +56,7 @@ fun PlasmaAcrylicBox(
                     .drawBehind {
                         drawCenteredAcrylicUnderLayer(
                             insetPx = ConfluenceDimens.acrylicUnderInset.toPx(),
+                            haloStrokePx = ConfluenceDimens.acrylicHaloStroke.toPx(),
                             cornerPx = ConfluenceDimens.glassCorner.toPx(),
                             strokePx = ConfluenceDimens.glassBorder.toPx(),
                         )
@@ -122,9 +123,14 @@ private fun plasmaFaceBrush(): Brush = Brush.verticalGradient(
  * Acrylic pane behind the face: same center, equal inset all sides,
  * #22D3EE edge at locked alpha, plus a soft halo. Stroke is drawn expanded
  * (not scaled) so thickness stays even on wide cards.
+ *
+ * Outer glow extent from the face is [insetPx] + [haloStrokePx] (the pane
+ * inset plus both halves of the halo stroke) — keep
+ * [ConfluenceDimens.acrylicHaloReserve] equal to that sum.
  */
 internal fun DrawScope.drawCenteredAcrylicUnderLayer(
     insetPx: Float,
+    haloStrokePx: Float,
     cornerPx: Float,
     strokePx: Float,
 ) {
@@ -132,7 +138,7 @@ internal fun DrawScope.drawCenteredAcrylicUnderLayer(
     val topLeft = Offset(-extra, -extra)
     val pane = Size(size.width + extra * 2f, size.height + extra * 2f)
     val outerCorner = CornerRadius(cornerPx + extra)
-    val glow = extra
+    val glow = haloStrokePx
     drawRoundRect(
         color = ConfluenceColors.AcrylicEdge.copy(alpha = 0.10f),
         topLeft = Offset(-extra - glow / 2f, -extra - glow / 2f),

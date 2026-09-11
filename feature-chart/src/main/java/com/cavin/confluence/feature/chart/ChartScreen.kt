@@ -102,63 +102,65 @@ fun ChartScreen(
         modifier = Modifier
             .fillMaxSize()
             .confluenceScreenGutter(
-                top = ConfluenceLayout.chromeGap,
-                bottom = ConfluenceLayout.chromeGap,
+                top = ConfluenceLayout.screenTop,
+                bottom = ConfluenceLayout.screenBottom,
             ),
-        verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap),
+        verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.stackGap),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    "BTC / USDT",
-                    style = ConfluenceTypography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ConfluenceColors.Text,
-                )
-                Text(
-                    "Ice + Bright Blue · $tfLabel",
-                    style = ConfluenceTypography.labelSmall,
-                    color = ConfluenceColors.Muted,
+        Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "BTC / USDT",
+                        style = ConfluenceTypography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ConfluenceColors.Text,
+                    )
+                    Text(
+                        "Ice + Bright Blue · $tfLabel",
+                        style = ConfluenceTypography.labelSmall,
+                        color = ConfluenceColors.Muted,
+                    )
+                }
+                AppChip(
+                    label = if (state.showVolume) "Vol on" else "Vol off",
+                    selected = state.showVolume,
+                    onClick = onToggleVolume,
                 )
             }
-            AppChip(
-                label = if (state.showVolume) "Vol on" else "Vol off",
-                selected = state.showVolume,
-                onClick = onToggleVolume,
+
+            SegmentedControl(
+                options = TfLabels,
+                selectedIndex = selectedIndex,
+                onSelect = { idx -> onSelectTf(DayOneTimeframes[idx]) },
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(ConfluenceLayout.inlineGap),
+            ) {
+                SnapshotBadge(label = "Snapshot", pulse = false)
+                Text(
+                    banner,
+                    style = ConfluenceMono.Caption,
+                    color = ConfluenceColors.Ice,
+                )
+            }
+
+            ChartStatusBanner(
+                loading = state.loading,
+                error = state.error,
+                health = state.health?.status,
+                healthNote = state.health?.note?.takeUnless { it.startsWith("Historical snapshot") },
+                empty = !state.loading && state.error == null && state.candles.isEmpty(),
+                onRetry = onRetry,
             )
         }
-
-        SegmentedControl(
-            options = TfLabels,
-            selectedIndex = selectedIndex,
-            onSelect = { idx -> onSelectTf(DayOneTimeframes[idx]) },
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(spacing.sm),
-        ) {
-            SnapshotBadge(label = "Snapshot", pulse = false)
-            Text(
-                banner,
-                style = ConfluenceMono.Caption,
-                color = ConfluenceColors.Ice,
-            )
-        }
-
-        ChartStatusBanner(
-            loading = state.loading,
-            error = state.error,
-            health = state.health?.status,
-            healthNote = state.health?.note?.takeUnless { it.startsWith("Historical snapshot") },
-            empty = !state.loading && state.error == null && state.candles.isEmpty(),
-            onRetry = onRetry,
-        )
 
         HudStrip(
             ohlc = candle?.let {
@@ -202,14 +204,16 @@ fun ChartScreen(
             }
         }
 
-        if (!alertId.isNullOrBlank()) {
-            Text(
-                "Opened from alert · $alertId",
-                style = ConfluenceTypography.labelSmall,
-                color = ConfluenceColors.Dim,
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
+            if (!alertId.isNullOrBlank()) {
+                Text(
+                    "Opened from alert · $alertId",
+                    style = ConfluenceTypography.labelSmall,
+                    color = ConfluenceColors.Dim,
+                )
+            }
+            Disclaimer(modifier = Modifier.fillMaxWidth())
         }
-        Disclaimer(modifier = Modifier.fillMaxWidth())
     }
 }
 

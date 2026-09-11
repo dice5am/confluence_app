@@ -39,11 +39,39 @@ class B1TokenTest {
     fun acrylicUnderLayerIsCenteredEqualInset() {
         // Single equal-inset token — not an asymmetric SE translation.
         assertEquals(7f, ConfluenceDimens.acrylicUnderInset.value)
+        assertEquals(7f, ConfluenceDimens.acrylicHaloStroke.value)
+        assertEquals(14f, ConfluenceDimens.acrylicHaloReserve.value)
         assertTrue(ConfluenceDimens.acrylicEdgeAlpha in 0.20f..0.28f)
-        assertEquals(16f, ConfluenceLayout.screenGutter.value)
-        assertEquals(16f, ConfluenceLayout.stackGap.value)
-        assertEquals(7f, ConfluenceLayout.peekReserve.value)
-        assertEquals(9f, ConfluenceLayout.outerGutter.value)
-        assertEquals(ConfluenceLayout.screenGutter, Spacing.lg)
+        assertEquals(24f, ConfluenceLayout.screenGutter.value)
+        assertEquals(32f, ConfluenceLayout.stackGap.value)
+        assertEquals(8f, ConfluenceLayout.inlineGap.value)
+        assertEquals(14f, ConfluenceLayout.peekReserve.value)
+        assertEquals(10f, ConfluenceLayout.outerGutter.value)
+        assertEquals(24f, ConfluenceDimens.dockElevationGap.value)
+        assertEquals(ConfluenceLayout.screenGutter, Spacing.xl)
+        assertEquals(ConfluenceLayout.stackGap, Spacing.xxl)
+        assertEquals(ConfluenceDimens.acrylicHaloReserve, ConfluenceLayout.peekReserve)
+    }
+
+    @Test
+    fun stackGapClearsNeighboringAcrylicHalos() {
+        val collision = ConfluenceDimens.acrylicHaloReserve.value * 2f
+        assertTrue(
+            "stackGap must be >= 2× acrylicHaloReserve so glows do not overlap at ~390dp",
+            ConfluenceLayout.stackGap.value >= collision,
+        )
+        assertTrue(
+            "screenGutter must be >= peekReserve so side halos stay inside the clip",
+            ConfluenceLayout.screenGutter.value >= ConfluenceLayout.peekReserve.value,
+        )
+        assertTrue(
+            "outerGutter must stay non-negative (gutter minus halo reserve)",
+            ConfluenceLayout.outerGutter.value >= 0f,
+        )
+        assertTrue(
+            "screenTop/Bottom must clear a single halo so scroll clip does not crop it",
+            ConfluenceLayout.screenTop.value >= ConfluenceDimens.acrylicHaloReserve.value &&
+                ConfluenceLayout.screenBottom.value >= ConfluenceDimens.acrylicHaloReserve.value,
+        )
     }
 }

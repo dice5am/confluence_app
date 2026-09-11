@@ -12,6 +12,18 @@ object ConfluenceDimens {
     val glassPaddingTight: Dp = 12.dp
     /** Equal peek on every side; under-layer is centered on the face (SE offset superseded). */
     val acrylicUnderInset: Dp = 7.dp
+    /**
+     * Soft halo stroke around the acrylic pane. PlasmaAcrylic's centered
+     * under-layer uses this as stroke width; keep equal to [acrylicUnderInset]
+     * so the pane and halo stay a centered pair.
+     */
+    val acrylicHaloStroke: Dp = acrylicUnderInset
+    /**
+     * Draw extent beyond the face (inset + outer half of halo stroke, twice).
+     * With stroke = inset this is 2× [acrylicUnderInset] (14dp). Stack gaps
+     * must be at least twice this or neighboring glows collide at ~390dp.
+     */
+    val acrylicHaloReserve: Dp = acrylicUnderInset + acrylicHaloStroke
     /** Acrylic-edge stroke alpha — locked 20–28%. */
     const val acrylicEdgeAlpha = 0.24f
     val bracketLength: Dp = 16.dp
@@ -20,7 +32,7 @@ object ConfluenceDimens {
     val focusRing: Dp = 3.dp
     val dockCorner: Dp = 14.dp
     val dockCellCorner: Dp = 10.dp
-    val dockElevationGap: Dp = 16.dp
+    val dockElevationGap: Dp = 24.dp
     val dockHeight: Dp = 60.dp
     val dockIcon: Dp = 22.dp
     val heroPriceShadow: Dp = 24.dp
