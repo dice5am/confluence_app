@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceDimens
+import com.cavin.confluence.core.ui.theme.ConfluenceLayout
 import com.cavin.confluence.core.ui.theme.ConfluenceType
 import com.cavin.confluence.core.ui.theme.Spacing
 
@@ -44,14 +45,20 @@ fun FloatingDock(
     selectedId: String,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
+    gutter: Boolean = true,
 ) {
     val shape = RoundedCornerShape(ConfluenceDimens.dockCorner)
     val cellShape = RoundedCornerShape(ConfluenceDimens.dockCellCorner)
+    val horizontalGutter = if (gutter) ConfluenceLayout.screenGutter else 0.dp
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = Spacing.lg, end = Spacing.lg, bottom = ConfluenceDimens.dockElevationGap),
+            .padding(
+                start = horizontalGutter,
+                end = horizontalGutter,
+                bottom = ConfluenceDimens.dockElevationGap,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Row(

@@ -1,8 +1,10 @@
 package com.cavin.confluence.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -23,7 +25,8 @@ import com.cavin.confluence.core.ui.components.ConfluenceDockItems
 import com.cavin.confluence.core.ui.components.FloatingDock
 import com.cavin.confluence.core.ui.components.GlassCard
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
-import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
+import com.cavin.confluence.core.ui.theme.ConfluenceLayout
+import com.cavin.confluence.core.ui.theme.confluenceScreenGutter
 import com.cavin.confluence.feature.alerts.AlertsRoute
 import com.cavin.confluence.feature.chart.ChartRoute
 import com.cavin.confluence.feature.home.HomeRoute
@@ -155,11 +158,11 @@ fun ConfluenceNavHost() {
 
 @Composable
 private fun SettingsScreen() {
-    val spacing = ConfluenceThemeAccess.spacing
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(spacing.lg),
+            .confluenceScreenGutter()
+            .padding(top = ConfluenceLayout.screenTop, bottom = ConfluenceLayout.screenBottom),
         contentAlignment = Alignment.Center,
     ) {
         GlassCard(glow = true, accentBorder = true) {
@@ -168,6 +171,7 @@ private fun SettingsScreen() {
                 style = MaterialTheme.typography.titleLarge,
                 color = ConfluenceColors.Text,
             )
+            Spacer(Modifier.height(ConfluenceLayout.chromeGap))
             Text(
                 text = "Preferences will live here.",
                 style = MaterialTheme.typography.bodyMedium,

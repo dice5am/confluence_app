@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
+import com.cavin.confluence.core.ui.theme.ConfluenceLayout
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
 import com.cavin.confluence.core.ui.theme.ConfluenceType
 import com.cavin.confluence.core.ui.theme.ConfluenceTypography
@@ -31,8 +32,8 @@ fun ComponentGallery() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            .padding(ConfluenceLayout.screenGutter),
+        verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.stackGap),
     ) {
         Text(
             "B1 · ICE + BRIGHT BLUE",
@@ -79,6 +80,7 @@ fun ComponentGallery() {
             items = ConfluenceDockItems,
             selectedId = "home",
             onSelect = {},
+            gutter = false,
         )
 
         Spacer(Modifier.height(Spacing.sm))
@@ -86,7 +88,7 @@ fun ComponentGallery() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 860)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390, heightDp = 860)
 @Composable
 internal fun ComponentGalleryPreview() {
     ConfluenceTheme {

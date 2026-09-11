@@ -2,18 +2,16 @@ package com.cavin.confluence.feature.alerts
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.cavin.confluence.core.ui.components.AlertAccent
 import com.cavin.confluence.core.ui.components.AlertRow
@@ -21,9 +19,11 @@ import com.cavin.confluence.core.ui.components.Disclaimer
 import com.cavin.confluence.core.ui.components.GlassCard
 import com.cavin.confluence.core.ui.components.PreviewAppShell
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
+import com.cavin.confluence.core.ui.theme.ConfluenceDimens
+import com.cavin.confluence.core.ui.theme.ConfluenceLayout
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
-import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
 import com.cavin.confluence.core.ui.theme.ConfluenceTypography
+import com.cavin.confluence.core.ui.theme.confluenceScreenGutter
 
 @Composable
 fun AlertsRoute(
@@ -36,15 +36,13 @@ fun AlertsRoute(
 fun AlertsScreen(
     onOpenAlert: (alertId: String) -> Unit = {},
 ) {
-    val spacing = ConfluenceThemeAccess.spacing
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .padding(horizontal = spacing.lg, vertical = spacing.md)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(spacing.md),
+            .confluenceScreenGutter()
+            .verticalScroll(rememberScrollState(), clip = false)
+            .padding(top = ConfluenceLayout.screenTop, bottom = ConfluenceLayout.screenBottom),
+        verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.stackGap),
     ) {
         Column {
             Text(
@@ -81,12 +79,19 @@ fun AlertsScreen(
             onClick = { onOpenAlert("alert-demo-2") },
         )
 
-        GlassCard(dashed = true, glow = false, accentBorder = false, brackets = false) {
+        GlassCard(
+            dashed = true,
+            glow = false,
+            accentBorder = false,
+            brackets = false,
+            contentPadding = ConfluenceDimens.glassPaddingTight,
+        ) {
             Text(
                 "No other alerts right now.",
                 style = ConfluenceTypography.bodyMedium,
                 color = ConfluenceColors.Dim,
                 modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
             )
         }
 
@@ -94,7 +99,7 @@ fun AlertsScreen(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 780)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390, heightDp = 780)
 @Composable
 internal fun AlertsPreview() {
     ConfluenceTheme {

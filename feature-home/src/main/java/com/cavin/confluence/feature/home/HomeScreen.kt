@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -38,11 +37,13 @@ import com.cavin.confluence.core.ui.components.PriceText
 import com.cavin.confluence.core.ui.components.PriceTextVariant
 import com.cavin.confluence.core.ui.components.SnapshotBadge
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
+import com.cavin.confluence.core.ui.theme.ConfluenceLayout
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
 import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
 import com.cavin.confluence.core.ui.theme.ConfluenceType
 import com.cavin.confluence.core.ui.theme.ConfluenceTypography
 import com.cavin.confluence.core.ui.theme.Spacing
+import com.cavin.confluence.core.ui.theme.confluenceScreenGutter
 import com.cavin.confluence.data.fake.FakeFixtures
 import com.cavin.confluence.data.snapshot.MdSnapshotStore
 import java.util.Locale
@@ -79,11 +80,10 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .padding(horizontal = spacing.lg)
-            .verticalScroll(rememberScrollState())
-            .padding(top = spacing.md, bottom = spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(spacing.md),
+            .confluenceScreenGutter()
+            .verticalScroll(rememberScrollState(), clip = false)
+            .padding(top = ConfluenceLayout.screenTop, bottom = ConfluenceLayout.screenBottom),
+        verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.stackGap),
     ) {
         Column {
             Text(
@@ -245,7 +245,7 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 private fun formatPrice(price: Double): String =
     String.format(Locale.US, "$%,.2f", price)
 
-@Preview(showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 780)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390, heightDp = 780)
 @Composable
 internal fun HomeReadyPreview() {
     ConfluenceTheme {
