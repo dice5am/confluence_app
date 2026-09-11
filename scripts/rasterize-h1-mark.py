@@ -20,6 +20,9 @@ BG_SVG = BRAND / "ic_launcher_background.svg"
 # Legacy launcher sizes (48dp). Adaptive layers use 108dp.
 LAUNCHER_DP = 48
 ADAPTIVE_DP = 108
+ADAPTIVE_SAFE_DP = 72
+SPLASH_ICON_DP = 240
+SPLASH_MARK_DP = 108
 DENSITIES = {
     "mdpi": 1.0,
     "hdpi": 1.5,
@@ -57,16 +60,37 @@ def circle_crop(src: Path, dest: Path) -> None:
 
 
 def main() -> None:
-    # Canonical 512 production raster (also the in-app HUD source).
+    # Canonical 512 production raster (also the in-app HUD + window splash source).
     mark_512 = BRAND / "confluence-mark-512.png"
     rsvg(MARK_SVG, mark_512, 512)
     nodpi_mark = CORE_RES / "drawable-nodpi/confluence_mark.png"
     nodpi_mark.parent.mkdir(parents=True, exist_ok=True)
     Image.open(mark_512).save(nodpi_mark, "PNG")
+    splash_mark = APP_RES / "drawable-nodpi/splash_mark.png"
+    splash_mark.parent.mkdir(parents=True, exist_ok=True)
+    Image.open(mark_512).save(splash_mark, "PNG")
 
     # Adaptive layers at xxxhdpi (108dp × 4). drawable-nodpi avoids mdpi scaling.
+    # Foreground = H1 master inset to the 72dp safe zone on the 108dp canvas.
     rsvg(FG_SVG, APP_RES / "drawable-nodpi/ic_launcher_foreground.png", ADAPTIVE_DP * 4)
     rsvg(BG_SVG, APP_RES / "drawable-nodpi/ic_launcher_background.png", ADAPTIVE_DP * 4)
+
+    # Android 12+ splash icon: 240dp canvas, 108dp H1 centered (96–120dp lock).
+    splash_scale = 4
+    splash_canvas = Image.new(
+        "RGBA",
+        (SPLASH_ICON_DP * splash_scale, SPLASH_ICON_DP * splash_scale),
+        (0, 0, 0, 0),
+    )
+    splash_icon_mark = Image.open(mark_512).resize(
+        (SPLASH_MARK_DP * splash_scale, SPLASH_MARK_DP * splash_scale),
+        Image.Resampling.LANCZOS,
+    )
+    off = (SPLASH_ICON_DP - SPLASH_MARK_DP) * splash_scale // 2
+    splash_canvas.paste(splash_icon_mark, (off, off), splash_icon_mark)
+    splash_icon = APP_RES / "drawable-nodpi/splash_icon.png"
+    splash_icon.parent.mkdir(parents=True, exist_ok=True)
+    splash_canvas.save(splash_icon, "PNG")
 
     for name, scale in DENSITIES.items():
         launcher = APP_RES / f"mipmap-{name}/ic_launcher.png"
@@ -74,7 +98,10 @@ def main() -> None:
         circle_crop(launcher, APP_RES / f"mipmap-{name}/ic_launcher_round.png")
 
     mark_512.unlink()
-    print("Rasterized H1 Stream Acrylic launcher + in-app mark.")
+    print(
+        "Rasterized H1 Stream Acrylic: launcher, "
+        f"{ADAPTIVE_SAFE_DP}dp-safe adaptive, splash {SPLASH_MARK_DP}dp.",
+    )
 
 
 if __name__ == "__main__":

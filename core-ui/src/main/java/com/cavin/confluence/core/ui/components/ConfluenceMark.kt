@@ -1,10 +1,13 @@
 package com.cavin.confluence.core.ui.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
@@ -62,7 +65,7 @@ fun ConfluenceBrandLockup(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        ConfluenceMark()
+        ConfluenceMark(size = ConfluenceDimens.brandMarkHeader)
         Column(Modifier.weight(1f)) {
             Text(
                 text = title,
@@ -80,6 +83,21 @@ fun ConfluenceBrandLockup(
     }
 }
 
+/** Cold-start / first-frame splash — H1 centered 96–120dp on void. */
+@Composable
+fun ConfluenceSplash(
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(ConfluenceColors.Void),
+        contentAlignment = Alignment.Center,
+    ) {
+        ConfluenceMark(size = ConfluenceDimens.brandMarkSplash)
+    }
+}
+
 @Preview(showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390)
 @Composable
 private fun ConfluenceBrandLockupPreview() {
@@ -90,5 +108,13 @@ private fun ConfluenceBrandLockupPreview() {
             titleStyle = ConfluenceType.Eyebrow,
             titleColor = ConfluenceColors.Bloom,
         )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390, heightDp = 780)
+@Composable
+internal fun ConfluenceSplashPreview() {
+    ConfluenceTheme {
+        ConfluenceSplash()
     }
 }

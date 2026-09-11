@@ -34,9 +34,13 @@ object ConfluenceDimens {
     val dockCellCorner: Dp = 10.dp
     val dockElevationGap: Dp = 24.dp
     val dockHeight: Dp = 60.dp
-    val dockIcon: Dp = 22.dp
+    /** Dock / tab brand spot (22–24dp lock). */
+    val brandMarkDock: Dp = 22.dp
+    val dockIcon: Dp = brandMarkDock
     /** In-app HUD mark in screen headers (24–28dp lock). */
     val brandMarkHeader: Dp = 28.dp
+    /** Splash mark on void (96–120dp lock). */
+    val brandMarkSplash: Dp = 108.dp
     val heroPriceShadow: Dp = 24.dp
     val sparklineHeight: Dp = 64.dp
     val meterHeight: Dp = 88.dp

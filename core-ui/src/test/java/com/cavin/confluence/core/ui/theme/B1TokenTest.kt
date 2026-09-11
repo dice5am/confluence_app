@@ -52,9 +52,20 @@ class B1TokenTest {
         assertEquals(ConfluenceLayout.stackGap, Spacing.xxl)
         assertEquals(ConfluenceDimens.acrylicHaloReserve, ConfluenceLayout.peekReserve)
         assertEquals(28f, ConfluenceDimens.brandMarkHeader.value)
+        assertEquals(22f, ConfluenceDimens.brandMarkDock.value)
+        assertEquals(22f, ConfluenceDimens.dockIcon.value)
+        assertEquals(108f, ConfluenceDimens.brandMarkSplash.value)
         assertTrue(
             "H1 header mark stays in the 24–28dp HUD lock",
             ConfluenceDimens.brandMarkHeader.value in 24f..28f,
+        )
+        assertTrue(
+            "H1 dock/tab mark stays in the 22–24dp lock",
+            ConfluenceDimens.brandMarkDock.value in 22f..24f,
+        )
+        assertTrue(
+            "H1 splash mark stays in the 96–120dp lock",
+            ConfluenceDimens.brandMarkSplash.value in 96f..120f,
         )
     }
 

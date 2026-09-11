@@ -37,7 +37,7 @@ data class FloatingDockItem(
 
 /**
  * Three-tab floating dock — plasma frame, filled active cell.
- * Labels are the chrome; icons are optional and unused in the locked B1 look.
+ * H1 brand spot at [ConfluenceDimens.brandMarkDock]; labels remain the tabs.
  */
 @Composable
 fun FloatingDock(
@@ -71,6 +71,10 @@ fun FloatingDock(
                 .padding(Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            ConfluenceMark(
+                size = ConfluenceDimens.brandMarkDock,
+                modifier = Modifier.padding(start = Spacing.xs, end = Spacing.xs),
+            )
             items.forEach { item ->
                 val selected = item.id == selectedId
                 val tint by animateColorAsState(
