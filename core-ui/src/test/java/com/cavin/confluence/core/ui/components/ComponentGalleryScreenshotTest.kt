@@ -24,16 +24,21 @@ class ComponentGalleryScreenshotTest {
 
     @Test
     fun componentGalleryB1() {
-        snap("b1-components") { ComponentGalleryPreview() }
+        snap("b1-components", heightDp = 860) { ComponentGalleryPreview() }
     }
 
-    private fun snap(name: String, content: @Composable () -> Unit) {
+    @Test
+    fun h1SplashOnVoid() {
+        snap("h1-splash", heightDp = 780) { ConfluenceSplashPreview() }
+    }
+
+    private fun snap(name: String, heightDp: Int, content: @Composable () -> Unit) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent(content)
         composeRule.mainClock.advanceTimeBy(400)
         val view = composeRule.activity.findViewById<View>(android.R.id.content)
         val widthPx = 390 * 3
-        val heightPx = 860 * 3
+        val heightPx = heightDp * 3
         view.measure(
             View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(heightPx, View.MeasureSpec.EXACTLY),

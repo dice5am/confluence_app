@@ -48,15 +48,11 @@ fun ComponentGallery() {
             verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.stackGap),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
-                Text(
-                    "B1 · ICE + BRIGHT BLUE",
-                    style = ConfluenceType.Eyebrow,
-                    color = ConfluenceColors.Bloom,
-                )
-                Text(
-                    "void · plasma · bloom · acrylic · bracket",
-                    style = ConfluenceTypography.labelSmall,
-                    color = ConfluenceColors.Muted,
+                ConfluenceBrandLockup(
+                    title = "B1 · ICE + BRIGHT BLUE",
+                    subtitle = "void · plasma · bloom · acrylic · bracket",
+                    titleStyle = ConfluenceType.Eyebrow,
+                    titleColor = ConfluenceColors.Bloom,
                 )
             }
 

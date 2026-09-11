@@ -16,13 +16,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cavin.confluence.core.ui.components.AppButton
 import com.cavin.confluence.core.ui.components.AppButtonStyle
 import com.cavin.confluence.core.ui.components.AppChip
+import com.cavin.confluence.core.ui.components.ConfluenceBrandLockup
 import com.cavin.confluence.core.ui.components.Disclaimer
 import com.cavin.confluence.core.ui.components.GlassCard
 import com.cavin.confluence.core.ui.components.HudOhlc
@@ -108,24 +108,10 @@ fun ChartScreen(
         verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.stackGap),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            ConfluenceBrandLockup(
+                title = "BTC / USDT",
+                subtitle = "Ice + Bright Blue · $tfLabel",
             ) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        "BTC / USDT",
-                        style = ConfluenceTypography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ConfluenceColors.Text,
-                    )
-                    Text(
-                        "Ice + Bright Blue · $tfLabel",
-                        style = ConfluenceTypography.labelSmall,
-                        color = ConfluenceColors.Muted,
-                    )
-                }
                 AppChip(
                     label = if (state.showVolume) "Vol on" else "Vol off",
                     selected = state.showVolume,

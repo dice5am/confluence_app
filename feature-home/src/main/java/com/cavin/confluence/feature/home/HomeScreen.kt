@@ -26,6 +26,7 @@ import com.cavin.confluence.core.ui.components.AlertRow
 import com.cavin.confluence.core.ui.components.AppButton
 import com.cavin.confluence.core.ui.components.AppButtonStyle
 import com.cavin.confluence.core.ui.components.AppChip
+import com.cavin.confluence.core.ui.components.ConfluenceBrandLockup
 import com.cavin.confluence.core.ui.components.ConfluenceMeter
 import com.cavin.confluence.core.ui.components.DeltaChip
 import com.cavin.confluence.core.ui.components.Disclaimer
@@ -88,20 +89,12 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.stackGap),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
-            Column {
-                Text(
-                    "ICE + BRIGHT BLUE",
-                    style = ConfluenceType.Eyebrow,
-                    color = ConfluenceColors.Bloom,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.height(spacing.xxs))
-                Text(
-                    "Blue base · brighter ice-blue accent (no warm hues)",
-                    style = ConfluenceTypography.labelSmall,
-                    color = ConfluenceColors.Muted,
-                )
-            }
+            ConfluenceBrandLockup(
+                title = "ICE + BRIGHT BLUE",
+                subtitle = "Blue base · brighter ice-blue accent (no warm hues)",
+                titleStyle = ConfluenceType.Eyebrow,
+                titleColor = ConfluenceColors.Bloom,
+            )
 
             if (state is HomeUiState.Ready) {
                 ReadyChipRow(state = state, onOpenAlerts = onOpenAlerts)
