@@ -1,7 +1,6 @@
 package com.cavin.confluence.feature.chart
 
 import android.app.Application
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,22 +10,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,10 +24,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cavin.confluence.core.ui.components.AppButton
 import com.cavin.confluence.core.ui.components.AppButtonStyle
+import com.cavin.confluence.core.ui.components.AppChip
 import com.cavin.confluence.core.ui.components.Disclaimer
 import com.cavin.confluence.core.ui.components.GlassCard
 import com.cavin.confluence.core.ui.components.HudOhlc
 import com.cavin.confluence.core.ui.components.HudStrip
+import com.cavin.confluence.core.ui.components.PlasmaAcrylicBox
+import com.cavin.confluence.core.ui.components.PlasmaSpinner
+import com.cavin.confluence.core.ui.components.PreviewAppShell
 import com.cavin.confluence.core.ui.components.SegmentedControl
 import com.cavin.confluence.core.ui.components.SnapshotBadge
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
@@ -45,10 +39,12 @@ import com.cavin.confluence.core.ui.theme.ConfluenceDimens
 import com.cavin.confluence.core.ui.theme.ConfluenceMono
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
 import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
+import com.cavin.confluence.core.ui.theme.ConfluenceTypography
 import com.cavin.confluence.data.fake.FakeFixtures
 import com.cavin.confluence.data.model.Candle
 import com.cavin.confluence.data.model.HealthStatus
 import com.cavin.confluence.data.model.Timeframe
+import com.cavin.confluence.data.snapshot.MdSnapshotStore
 
 internal val DayOneTimeframes = listOf(
     Timeframe.M1, Timeframe.M5, Timeframe.M15,
@@ -57,8 +53,9 @@ internal val DayOneTimeframes = listOf(
 
 internal val TfLabels = listOf("1m", "5m", "15m", "1h", "4h", "1D", "1W")
 
-/** Mirrors packaged `md_snapshot/meta.json` cutoffUtc for screenshot chrome. Runtime uses MdSnapshotStore.bannerLabel. */
-internal const val ChartProofAsOf = "Historical snapshot · as of 2026-09-10 19:59 UTC"
+/** Screenshot chrome as-of — packaged meta.json cutoff (fallback when assets aren't loaded). */
+internal val ChartProofAsOf: String
+    get() = MdSnapshotStore.bannerLabel
 
 @Composable
 fun ChartRoute(
@@ -80,11 +77,9 @@ fun ChartRoute(
         onCrosshair = vm::onCrosshair,
         onToggleVolume = vm::toggleVolume,
         onRetry = vm::refresh,
-        onBack = onBack,
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChartScreen(
     state: ChartUiState,
@@ -93,7 +88,6 @@ fun ChartScreen(
     onCrosshair: (Candle?) -> Unit = {},
     onToggleVolume: () -> Unit = {},
     onRetry: () -> Unit = {},
-    onBack: () -> Unit = {},
     viewportSeed: ChartViewportSeed = ChartViewportSeed(),
 ) {
     val spacing = ConfluenceThemeAccess.spacing
@@ -102,121 +96,92 @@ fun ChartScreen(
     val tfLabel = TfLabels.getOrElse(selectedIndex) { state.timeframe.wire }
     val banner = state.snapshotBanner
         ?: state.health?.note?.takeIf { it.startsWith("Historical snapshot") }
+        ?: ChartProofAsOf
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            "BTC / USDT",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ConfluenceColors.TextPrimary,
-                        )
-                        Text(
-                            "Insight chart · $tfLabel",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = ConfluenceColors.Slate,
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = ConfluenceColors.Void,
-                ),
-                actions = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = spacing.sm),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
-                    ) {
-                        if (banner != null) {
-                            SnapshotBadge(label = "Snapshot", pulse = false)
-                        }
-                        Text(
-                            "Vol",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = ConfluenceColors.TextSecondary,
-                        )
-                        Switch(
-                            checked = state.showVolume,
-                            onCheckedChange = { onToggleVolume() },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = ConfluenceColors.CyberCyan,
-                                checkedTrackColor = ConfluenceColors.CyberCyan.copy(alpha = 0.35f),
-                                uncheckedThumbColor = ConfluenceColors.Slate,
-                                uncheckedTrackColor = ConfluenceColors.VoidElevated,
-                            ),
-                        )
-                    }
-                },
-            )
-        },
-        containerColor = ConfluenceColors.Void,
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = spacing.lg, vertical = spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(spacing.sm),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(horizontal = spacing.lg, vertical = spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(spacing.sm),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            SegmentedControl(
-                options = TfLabels,
-                selectedIndex = selectedIndex,
-                onSelect = { idx -> onSelectTf(DayOneTimeframes[idx]) },
-            )
-
-            if (banner != null) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(ConfluenceDimens.chipRadius))
-                        .background(ConfluenceColors.Mint.copy(alpha = 0.12f))
-                        .padding(horizontal = spacing.sm, vertical = spacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(spacing.sm),
-                ) {
-                    SnapshotBadge(label = "Snapshot", pulse = false)
-                    Text(
-                        banner,
-                        style = ConfluenceMono.Caption,
-                        color = ConfluenceColors.Mint,
-                    )
-                }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "BTC / USDT",
+                    style = ConfluenceTypography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ConfluenceColors.Text,
+                )
+                Text(
+                    "Ice + Bright Blue · $tfLabel",
+                    style = ConfluenceTypography.labelSmall,
+                    color = ConfluenceColors.Muted,
+                )
             }
-
-            ChartStatusBanner(
-                loading = state.loading,
-                error = state.error,
-                health = state.health?.status,
-                healthNote = state.health?.note?.takeUnless { it.startsWith("Historical snapshot") },
-                empty = !state.loading && state.error == null && state.candles.isEmpty(),
-                onRetry = onRetry,
+            AppChip(
+                label = if (state.showVolume) "Vol on" else "Vol off",
+                selected = state.showVolume,
+                onClick = onToggleVolume,
             )
+        }
 
-            HudStrip(
-                ohlc = candle?.let {
-                    HudOhlc(open = it.open, high = it.high, low = it.low, close = it.close)
-                },
+        SegmentedControl(
+            options = TfLabels,
+            selectedIndex = selectedIndex,
+            onSelect = { idx -> onSelectTf(DayOneTimeframes[idx]) },
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+        ) {
+            SnapshotBadge(label = "Snapshot", pulse = false)
+            Text(
+                banner,
+                style = ConfluenceMono.Caption,
+                color = ConfluenceColors.Ice,
             )
+        }
 
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(ConfluenceDimens.glassCorner))
-                    .background(ConfluenceColors.Void),
-            ) {
+        ChartStatusBanner(
+            loading = state.loading,
+            error = state.error,
+            health = state.health?.status,
+            healthNote = state.health?.note?.takeUnless { it.startsWith("Historical snapshot") },
+            empty = !state.loading && state.error == null && state.candles.isEmpty(),
+            onRetry = onRetry,
+        )
+
+        HudStrip(
+            ohlc = candle?.let {
+                HudOhlc(open = it.open, high = it.high, low = it.low, close = it.close)
+            },
+        )
+
+        PlasmaAcrylicBox(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            glow = true,
+            brackets = true,
+            contentPadding = spacing.xs,
+        ) {
+            Box(Modifier.fillMaxSize()) {
                 when {
                     state.loading && state.candles.isEmpty() ->
                         Column(
                             Modifier.align(Alignment.Center),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            CircularProgressIndicator(color = ConfluenceColors.CyberCyan)
+                            PlasmaSpinner()
                             Spacer(Modifier.height(spacing.sm))
-                            Text("Loading candles…", color = ConfluenceColors.Slate)
+                            Text("Loading candles…", color = ConfluenceColors.Dim)
                         }
                     state.candles.isNotEmpty() -> CandleChart(
                         candles = state.candles,
@@ -229,20 +194,20 @@ fun ChartScreen(
                     else -> Text(
                         "No series for ${state.timeframe.wire}",
                         modifier = Modifier.align(Alignment.Center),
-                        color = ConfluenceColors.Slate,
+                        color = ConfluenceColors.Dim,
                     )
                 }
             }
-
-            if (!alertId.isNullOrBlank()) {
-                Text(
-                    "Opened from alert · $alertId",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = ConfluenceColors.Slate,
-                )
-            }
-            Disclaimer(modifier = Modifier.fillMaxWidth())
         }
+
+        if (!alertId.isNullOrBlank()) {
+            Text(
+                "Opened from alert · $alertId",
+                style = ConfluenceTypography.labelSmall,
+                color = ConfluenceColors.Dim,
+            )
+        }
+        Disclaimer(modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -271,8 +236,8 @@ private fun ChartStatusBanner(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.labelSmall, color = ConfluenceColors.Slate)
-                Text(body, style = MaterialTheme.typography.bodyMedium, color = ConfluenceColors.TextPrimary)
+                Text(title, style = ConfluenceTypography.labelSmall, color = ConfluenceColors.Dim)
+                Text(body, style = ConfluenceTypography.bodyMedium, color = ConfluenceColors.Text)
             }
             if (error != null || empty) {
                 AppButton(onClick = onRetry, style = AppButtonStyle.Secondary) { Text("Retry") }
@@ -298,56 +263,66 @@ internal fun chartProofUiState(
     )
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 780)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 780)
 @Composable
 private fun ChartPreview() {
     ConfluenceTheme {
-        ChartScreen(state = ChartUiState(loading = false, candles = emptyList()))
+        PreviewAppShell(selectedId = "chart") {
+            ChartScreen(state = ChartUiState(loading = false, candles = emptyList()))
+        }
     }
 }
 
-@Preview(name = "zoomed out + volume", showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 780)
+@Preview(name = "zoomed out + volume", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 780)
 @Composable
 internal fun ChartPreviewZoomedOut() {
     val state = remember { chartProofUiState(Timeframe.W1, count = 120) }
     ConfluenceTheme {
-        ChartScreen(
-            state = state,
-            viewportSeed = ChartViewportSeed(candleWidth = ConfluenceDimens.chartMinCandleWidth),
-        )
+        PreviewAppShell(selectedId = "chart") {
+            ChartScreen(
+                state = state,
+                viewportSeed = ChartViewportSeed(candleWidth = ConfluenceDimens.chartMinCandleWidth),
+            )
+        }
     }
 }
 
-@Preview(name = "zoomed in bull+bear", showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 780)
+@Preview(name = "zoomed in bull+bear", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 780)
 @Composable
 internal fun ChartPreviewZoomedIn() {
     val state = remember { chartProofUiState(Timeframe.H1, count = 48) }
     ConfluenceTheme {
-        ChartScreen(
-            state = state,
-            viewportSeed = ChartViewportSeed(candleWidth = ConfluenceDimens.chartMaxCandleWidth, visibleCount = 12),
-        )
+        PreviewAppShell(selectedId = "chart") {
+            ChartScreen(
+                state = state,
+                viewportSeed = ChartViewportSeed(candleWidth = ConfluenceDimens.chartMaxCandleWidth, visibleCount = 12),
+            )
+        }
     }
 }
 
-@Preview(name = "crosshair on", showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 780)
+@Preview(name = "crosshair on", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 780)
 @Composable
 internal fun ChartPreviewCrosshair() {
     val state = remember { chartProofUiState(Timeframe.H1, count = 48) }
     val idx = state.candles.lastIndex - 4
     ConfluenceTheme {
-        ChartScreen(
-            state = state.copy(crosshair = state.candles.getOrNull(idx)),
-            viewportSeed = ChartViewportSeed(crosshairIndex = idx),
-        )
+        PreviewAppShell(selectedId = "chart") {
+            ChartScreen(
+                state = state.copy(crosshair = state.candles.getOrNull(idx)),
+                viewportSeed = ChartViewportSeed(crosshairIndex = idx),
+            )
+        }
     }
 }
 
-@Preview(name = "TF 1D switched", showBackground = true, backgroundColor = 0xFF07090E, widthDp = 400, heightDp = 780)
+@Preview(name = "TF 1D switched", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 780)
 @Composable
 internal fun ChartPreviewTfSwitched() {
     val state = remember { chartProofUiState(Timeframe.D1, count = 64) }
     ConfluenceTheme {
-        ChartScreen(state = state)
+        PreviewAppShell(selectedId = "chart") {
+            ChartScreen(state = state)
+        }
     }
 }

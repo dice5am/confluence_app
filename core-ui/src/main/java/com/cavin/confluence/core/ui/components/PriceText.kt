@@ -3,11 +3,9 @@ package com.cavin.confluence.core.ui.components
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.unit.dp
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceMono
 
@@ -18,7 +16,7 @@ fun PriceText(
     text: String,
     modifier: Modifier = Modifier,
     variant: PriceTextVariant = PriceTextVariant.Hero,
-    color: Color = ConfluenceColors.TextPrimary,
+    color: Color = ConfluenceColors.Text,
     cyanShadow: Boolean = false,
 ) {
     val base = when (variant) {
@@ -30,9 +28,9 @@ fun PriceText(
         base.copy(
             color = color,
             shadow = Shadow(
-                color = ConfluenceColors.CyberCyan.copy(alpha = 0.08f),
+                color = ConfluenceColors.Plasma.copy(alpha = 0.28f),
                 offset = Offset.Zero,
-                blurRadius = 30f,
+                blurRadius = 24f,
             ),
         )
     } else {

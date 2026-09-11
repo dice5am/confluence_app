@@ -1,0 +1,95 @@
+package com.cavin.confluence.core.ui.components
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import com.cavin.confluence.core.ui.theme.ConfluenceColors
+import com.cavin.confluence.core.ui.theme.ConfluenceTheme
+import com.cavin.confluence.core.ui.theme.ConfluenceType
+import com.cavin.confluence.core.ui.theme.ConfluenceTypography
+import com.cavin.confluence.core.ui.theme.Spacing
+
+@Composable
+fun ComponentGallery() {
+    var selectedChip by remember { mutableStateOf(1) }
+    var inputDefault by remember { mutableStateOf("Default") }
+    var inputFocus by remember { mutableStateOf("Focus") }
+    var inputError by remember { mutableStateOf("Error") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        Text(
+            "B1 · ICE + BRIGHT BLUE",
+            style = ConfluenceType.Eyebrow,
+            color = ConfluenceColors.Bloom,
+        )
+        Text(
+            "void · plasma · bloom · acrylic · bracket",
+            style = ConfluenceTypography.labelSmall,
+            color = ConfluenceColors.Muted,
+        )
+
+        Text("BUTTONS", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            AppButton(onClick = {}, style = AppButtonStyle.Primary) { Text("Default") }
+            AppButton(onClick = {}, style = AppButtonStyle.Secondary) { Text("Pressed") }
+            AppButton(onClick = {}, style = AppButtonStyle.Ghost) { Text("Focus") }
+            AppButton(onClick = {}, style = AppButtonStyle.Primary, enabled = false) { Text("Disabled") }
+        }
+
+        Text("CHIPS", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            AppChip("Default", selected = selectedChip == 0, onClick = { selectedChip = 0 })
+            AppChip("Selected", selected = selectedChip == 1, onClick = { selectedChip = 1 })
+            AppChip("Acrylic", selected = false, onClick = {}, accent = AppChipAccent.Acrylic)
+        }
+
+        Text("CARD / LAYER", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
+        GlassCard(glow = true, accentBorder = true) {
+            Text(
+                "Blue plasma face · accent brackets · acrylic under-layer",
+                style = ConfluenceTypography.titleMedium,
+                color = ConfluenceColors.Text,
+            )
+        }
+
+        Text("INPUTS", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
+        AppTextField(value = inputDefault, onValueChange = { inputDefault = it }, placeholder = "Default")
+        AppTextField(value = inputFocus, onValueChange = { inputFocus = it })
+        AppTextField(value = inputError, onValueChange = { inputError = it }, isError = true)
+
+        Text("DOCK", style = ConfluenceType.Eyebrow, color = ConfluenceColors.Dim)
+        FloatingDock(
+            items = ConfluenceDockItems,
+            selectedId = "home",
+            onSelect = {},
+        )
+
+        Spacer(Modifier.height(Spacing.sm))
+        Disclaimer()
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 860)
+@Composable
+internal fun ComponentGalleryPreview() {
+    ConfluenceTheme {
+        ComponentGallery()
+    }
+}

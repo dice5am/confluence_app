@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.cavin.confluence.core.ui.theme.ConfluenceDimens
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
+import com.cavin.confluence.core.ui.components.PreviewAppShell
 import com.cavin.confluence.data.model.Timeframe
 import org.junit.Rule
 import org.junit.Test
@@ -63,14 +64,21 @@ class ChartCraftScreenshotTest {
         val state = chartProofUiState(Timeframe.H1, count = 64)
         snap("chart-1h-hairline-snapshot") {
             ConfluenceTheme {
-                ChartScreen(
-                    state = state,
-                    viewportSeed = ChartViewportSeed(
-                        candleWidth = ConfluenceDimens.chartDefaultCandleWidth,
-                    ),
-                )
+                PreviewAppShell(selectedId = "chart") {
+                    ChartScreen(
+                        state = state,
+                        viewportSeed = ChartViewportSeed(
+                            candleWidth = ConfluenceDimens.chartDefaultCandleWidth,
+                        ),
+                    )
+                }
             }
         }
+    }
+
+    @Test
+    fun b1ChartShellCraft() {
+        snap("b1-chart") { ChartPreviewZoomedOut() }
     }
 
     private fun snap(name: String, content: @Composable () -> Unit) {

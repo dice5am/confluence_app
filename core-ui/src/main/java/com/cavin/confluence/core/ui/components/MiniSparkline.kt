@@ -19,7 +19,7 @@ fun MiniSparkline(
     modifier: Modifier = Modifier,
 ) {
     val up = values.isNotEmpty() && values.last() >= values.first()
-    val stroke = if (up) ConfluenceColors.Mint else ConfluenceColors.Rose
+    val stroke = if (up) ConfluenceColors.Pos else ConfluenceColors.Neg
     val fillTop = stroke.copy(alpha = 0.35f)
     Canvas(
         modifier = modifier
@@ -54,7 +54,7 @@ fun MiniSparkline(
         drawPath(line, color = stroke, style = Stroke(width = 2f, cap = StrokeCap.Round))
         val lastY = size.height - ((values.last() - minV) / range) * size.height
         drawLine(
-            color = ConfluenceColors.CyberCyan.copy(alpha = 0.2f),
+            color = ConfluenceColors.Plasma.copy(alpha = 0.2f),
             start = Offset(0f, lastY),
             end = Offset(size.width, lastY),
             strokeWidth = 1f,

@@ -6,24 +6,24 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
+import com.cavin.confluence.core.ui.theme.ConfluenceType
 
 enum class AppChipAccent {
-    Blue,
-    Orange,
+    Plasma,
+    Acrylic,
+    Ice,
 }
 
 /**
- * Selectable chip — selected state uses blue or orange neon fill.
+ * Telemetry / TF chip — selected = plasma fill + glow stroke; acrylic = cyan edge.
  */
 @Composable
 fun AppChip(
@@ -31,36 +31,40 @@ fun AppChip(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    accent: AppChipAccent = AppChipAccent.Blue,
+    accent: AppChipAccent = AppChipAccent.Plasma,
+    enabled: Boolean = true,
 ) {
-    val shape = RoundedCornerShape(999.dp)
-    val accentColor = when (accent) {
-        AppChipAccent.Blue -> ConfluenceColors.Primary
-        AppChipAccent.Orange -> ConfluenceColors.CyberCyan
+    val shape = RoundedCornerShape(10.dp)
+    val border = when {
+        !enabled -> ConfluenceColors.Dim.copy(alpha = 0.35f)
+        accent == AppChipAccent.Acrylic -> ConfluenceColors.AcrylicEdge.copy(alpha = 0.75f)
+        selected -> ConfluenceColors.Plasma
+        else -> ConfluenceColors.BorderSubtle
     }
-    val bg = if (selected) {
-        Brush.horizontalGradient(
-            listOf(accentColor.copy(alpha = 0.35f), accentColor.copy(alpha = 0.18f)),
-        )
-    } else {
-        Brush.horizontalGradient(
-            listOf(ConfluenceColors.SurfaceVariant, ConfluenceColors.Surface),
-        )
+    val bg = when {
+        !enabled -> ConfluenceColors.VoidElevated.copy(alpha = 0.4f)
+        selected -> ConfluenceColors.Plasma.copy(alpha = 0.25f)
+        accent == AppChipAccent.Acrylic -> ConfluenceColors.VoidElevated.copy(alpha = 0.7f)
+        else -> ConfluenceColors.VoidElevated.copy(alpha = 0.55f)
     }
-    val border = if (selected) accentColor.copy(alpha = 0.85f) else ConfluenceColors.Outline
-    val fg = if (selected) accentColor else ConfluenceColors.OnSurfaceMuted
+    val fg = when {
+        !enabled -> ConfluenceColors.Dim.copy(alpha = 0.45f)
+        selected -> ConfluenceColors.Ice
+        accent == AppChipAccent.Ice -> ConfluenceColors.Ice
+        else -> ConfluenceColors.Muted
+    }
 
     Box(
         modifier = modifier
             .clip(shape)
             .background(bg, shape)
             .border(1.dp, border, shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
         Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
+            text = label.uppercase(),
+            style = ConfluenceType.Telemetry,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
             color = fg,
         )
@@ -84,7 +88,7 @@ fun AppStatusChip(
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelLarge,
+            style = ConfluenceType.Telemetry,
             color = color,
             fontWeight = FontWeight.Medium,
         )

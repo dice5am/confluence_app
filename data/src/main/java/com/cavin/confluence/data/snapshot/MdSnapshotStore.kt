@@ -32,8 +32,14 @@ object MdSnapshotStore {
 
     private val byTf = LinkedHashMap<Timeframe, List<Candle>>()
 
+    /**
+     * Packaged `meta.json` cutoffUtc. Used when assets aren't loaded (Compose previews).
+     * Must match `data/src/main/assets/md_snapshot/meta.json`.
+     */
+    const val PACKAGED_CUTOFF_UTC = "2026-09-11 14:59 UTC"
+
     val bannerLabel: String
-        get() = "Historical snapshot · as of $cutoffUtcLabel"
+        get() = "Historical snapshot · as of ${cutoffUtcLabel.ifBlank { PACKAGED_CUTOFF_UTC }}"
 
     fun isLoaded(): Boolean = loaded.get()
 
