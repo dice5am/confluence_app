@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -102,8 +101,10 @@ fun ChartScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .confluenceScreenGutter()
-            .padding(top = ConfluenceLayout.chromeGap, bottom = ConfluenceLayout.chromeGap),
+            .confluenceScreenGutter(
+                top = ConfluenceLayout.chromeGap,
+                bottom = ConfluenceLayout.chromeGap,
+            ),
         verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap),
     ) {
         Row(

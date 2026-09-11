@@ -161,8 +161,7 @@ private fun SettingsScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .confluenceScreenGutter()
-            .padding(top = ConfluenceLayout.screenTop, bottom = ConfluenceLayout.screenBottom),
+            .confluenceScreenGutter(),
         contentAlignment = Alignment.Center,
     ) {
         GlassCard(glow = true, accentBorder = true) {

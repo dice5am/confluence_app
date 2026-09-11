@@ -42,6 +42,8 @@ class B1TokenTest {
         assertTrue(ConfluenceDimens.acrylicEdgeAlpha in 0.20f..0.28f)
         assertEquals(16f, ConfluenceLayout.screenGutter.value)
         assertEquals(16f, ConfluenceLayout.stackGap.value)
+        assertEquals(7f, ConfluenceLayout.peekReserve.value)
+        assertEquals(9f, ConfluenceLayout.outerGutter.value)
         assertEquals(ConfluenceLayout.screenGutter, Spacing.lg)
     }
 }

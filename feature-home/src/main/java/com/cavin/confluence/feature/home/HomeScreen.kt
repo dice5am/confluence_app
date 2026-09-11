@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -43,7 +42,8 @@ import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
 import com.cavin.confluence.core.ui.theme.ConfluenceType
 import com.cavin.confluence.core.ui.theme.ConfluenceTypography
 import com.cavin.confluence.core.ui.theme.Spacing
-import com.cavin.confluence.core.ui.theme.confluenceScreenGutter
+import com.cavin.confluence.core.ui.theme.confluenceScreenInner
+import com.cavin.confluence.core.ui.theme.confluenceScreenOuter
 import com.cavin.confluence.data.fake.FakeFixtures
 import com.cavin.confluence.data.snapshot.MdSnapshotStore
 import java.util.Locale
@@ -80,9 +80,9 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .confluenceScreenGutter()
-            .verticalScroll(rememberScrollState(), clip = false)
-            .padding(top = ConfluenceLayout.screenTop, bottom = ConfluenceLayout.screenBottom),
+            .confluenceScreenOuter()
+            .verticalScroll(rememberScrollState())
+            .confluenceScreenInner(),
         verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.stackGap),
     ) {
         Column {
