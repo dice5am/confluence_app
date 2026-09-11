@@ -2,6 +2,7 @@ package com.cavin.confluence.core.ui.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -28,7 +29,7 @@ fun GlassCard(
         dashed = dashed,
         contentPadding = contentPadding,
     ) {
-        Column(content = content)
+        Column(modifier = Modifier.fillMaxWidth(), content = content)
     }
 }
 

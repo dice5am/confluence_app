@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,10 +34,12 @@ import com.cavin.confluence.core.ui.components.SegmentedControl
 import com.cavin.confluence.core.ui.components.SnapshotBadge
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceDimens
+import com.cavin.confluence.core.ui.theme.ConfluenceLayout
 import com.cavin.confluence.core.ui.theme.ConfluenceMono
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
 import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
 import com.cavin.confluence.core.ui.theme.ConfluenceTypography
+import com.cavin.confluence.core.ui.theme.confluenceScreenGutter
 import com.cavin.confluence.data.fake.FakeFixtures
 import com.cavin.confluence.data.model.Candle
 import com.cavin.confluence.data.model.HealthStatus
@@ -101,9 +101,11 @@ fun ChartScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .padding(horizontal = spacing.lg, vertical = spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(spacing.sm),
+            .confluenceScreenGutter(
+                top = ConfluenceLayout.chromeGap,
+                bottom = ConfluenceLayout.chromeGap,
+            ),
+        verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -263,7 +265,7 @@ internal fun chartProofUiState(
     )
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 780)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390, heightDp = 780)
 @Composable
 private fun ChartPreview() {
     ConfluenceTheme {
@@ -273,7 +275,7 @@ private fun ChartPreview() {
     }
 }
 
-@Preview(name = "zoomed out + volume", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 780)
+@Preview(name = "zoomed out + volume", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390, heightDp = 780)
 @Composable
 internal fun ChartPreviewZoomedOut() {
     val state = remember { chartProofUiState(Timeframe.W1, count = 120) }
@@ -287,7 +289,7 @@ internal fun ChartPreviewZoomedOut() {
     }
 }
 
-@Preview(name = "zoomed in bull+bear", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 780)
+@Preview(name = "zoomed in bull+bear", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390, heightDp = 780)
 @Composable
 internal fun ChartPreviewZoomedIn() {
     val state = remember { chartProofUiState(Timeframe.H1, count = 48) }
@@ -301,7 +303,7 @@ internal fun ChartPreviewZoomedIn() {
     }
 }
 
-@Preview(name = "crosshair on", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 780)
+@Preview(name = "crosshair on", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390, heightDp = 780)
 @Composable
 internal fun ChartPreviewCrosshair() {
     val state = remember { chartProofUiState(Timeframe.H1, count = 48) }
@@ -316,7 +318,7 @@ internal fun ChartPreviewCrosshair() {
     }
 }
 
-@Preview(name = "TF 1D switched", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 400, heightDp = 780)
+@Preview(name = "TF 1D switched", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390, heightDp = 780)
 @Composable
 internal fun ChartPreviewTfSwitched() {
     val state = remember { chartProofUiState(Timeframe.D1, count = 64) }

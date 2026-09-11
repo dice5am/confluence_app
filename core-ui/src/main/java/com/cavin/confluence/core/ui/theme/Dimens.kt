@@ -10,7 +10,10 @@ object ConfluenceDimens {
     val glassBlur: Dp = 18.dp
     val glassPadding: Dp = 16.dp
     val glassPaddingTight: Dp = 12.dp
-    val acrylicUnderOffset: Dp = 7.dp
+    /** Equal peek on every side; under-layer is centered on the face (SE offset superseded). */
+    val acrylicUnderInset: Dp = 7.dp
+    /** Acrylic-edge stroke alpha — locked 20–28%. */
+    const val acrylicEdgeAlpha = 0.24f
     val bracketLength: Dp = 16.dp
     val bracketStroke: Dp = 1.5.dp
     val plasmaGlowPad: Dp = 12.dp

@@ -16,7 +16,7 @@ import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w400dp-h780dp-xxhdpi")
+@Config(sdk = [34], qualifiers = "w390dp-h780dp-xxhdpi")
 class AlertsB1ScreenshotTest {
 
     @get:Rule
@@ -32,7 +32,7 @@ class AlertsB1ScreenshotTest {
         composeRule.setContent(content)
         composeRule.mainClock.advanceTimeBy(400)
         val view = composeRule.activity.findViewById<View>(android.R.id.content)
-        val widthPx = 400 * 3
+        val widthPx = 390 * 3
         val heightPx = 780 * 3
         view.measure(
             View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),

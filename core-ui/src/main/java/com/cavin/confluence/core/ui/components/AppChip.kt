@@ -8,10 +8,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceType
@@ -61,12 +64,16 @@ fun AppChip(
             .border(1.dp, border, shape)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label.uppercase(),
             style = ConfluenceType.Telemetry,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
             color = fg,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

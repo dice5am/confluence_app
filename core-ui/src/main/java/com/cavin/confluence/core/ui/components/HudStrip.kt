@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceDimens
@@ -66,7 +67,12 @@ private fun HudCell(
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
         horizontalAlignment = Alignment.Start,
     ) {
-        Text(label, style = ConfluenceType.Telemetry, color = ConfluenceColors.Dim)
-        Text(value, style = ConfluenceMono.Hud.copy(color = valueColor), maxLines = 1)
+        Text(label, style = ConfluenceType.Telemetry, color = ConfluenceColors.Dim, maxLines = 1)
+        Text(
+            value,
+            style = ConfluenceMono.Hud.copy(color = valueColor),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }

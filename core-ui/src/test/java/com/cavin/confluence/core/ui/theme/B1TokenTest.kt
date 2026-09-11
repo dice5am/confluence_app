@@ -2,6 +2,7 @@ package com.cavin.confluence.core.ui.theme
 
 import androidx.compose.ui.graphics.toArgb
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class B1TokenTest {
@@ -32,5 +33,17 @@ class B1TokenTest {
         assertEquals(ConfluenceColors.Void, ConfluenceColors.Background)
         assertEquals(ConfluenceColors.Ice, ConfluenceColors.Accent)
         assertEquals(ConfluenceColors.Dim, ConfluenceColors.Slate)
+    }
+
+    @Test
+    fun acrylicUnderLayerIsCenteredEqualInset() {
+        // Single equal-inset token — not an asymmetric SE translation.
+        assertEquals(7f, ConfluenceDimens.acrylicUnderInset.value)
+        assertTrue(ConfluenceDimens.acrylicEdgeAlpha in 0.20f..0.28f)
+        assertEquals(16f, ConfluenceLayout.screenGutter.value)
+        assertEquals(16f, ConfluenceLayout.stackGap.value)
+        assertEquals(7f, ConfluenceLayout.peekReserve.value)
+        assertEquals(9f, ConfluenceLayout.outerGutter.value)
+        assertEquals(ConfluenceLayout.screenGutter, Spacing.lg)
     }
 }

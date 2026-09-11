@@ -5,7 +5,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -29,8 +28,11 @@ import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceDimens
 
 /**
- * F1 Plasma Acrylic chrome: offset acrylic under-layer + plasma bloom on the
+ * F1 Plasma Acrylic chrome: centered acrylic under-layer + plasma bloom on the
  * face + corner brackets. Glow and under-layer travel together.
+ *
+ * Depth is a same-center under-layer (equal inset on all sides), not a SE
+ * translation. Brackets stay on the face corners.
  */
 @Composable
 fun PlasmaAcrylicBox(
@@ -42,24 +44,22 @@ fun PlasmaAcrylicBox(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(ConfluenceDimens.glassCorner)
-    val under = ConfluenceDimens.acrylicUnderOffset
     val showSystem = glow && !dashed
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(if (showSystem) Modifier.padding(end = under, bottom = under) else Modifier),
+        modifier = modifier.fillMaxWidth(),
     ) {
         if (showSystem) {
             Box(
                 Modifier
                     .matchParentSize()
-                    .offset(x = under, y = under)
-                    .border(
-                        ConfluenceDimens.glassBorder,
-                        ConfluenceColors.AcrylicEdge.copy(alpha = 0.55f),
-                        shape,
-                    ),
+                    .drawBehind {
+                        drawCenteredAcrylicUnderLayer(
+                            insetPx = ConfluenceDimens.acrylicUnderInset.toPx(),
+                            cornerPx = ConfluenceDimens.glassCorner.toPx(),
+                            strokePx = ConfluenceDimens.glassBorder.toPx(),
+                        )
+                    },
             )
         }
         Box(
@@ -117,6 +117,37 @@ private fun plasmaFaceBrush(): Brush = Brush.verticalGradient(
     0.22f to ConfluenceColors.Text.copy(alpha = 0.05f),
     1f to ConfluenceColors.VoidElevated.copy(alpha = 0.94f),
 )
+
+/**
+ * Acrylic pane behind the face: same center, equal inset all sides,
+ * #22D3EE edge at locked alpha, plus a soft halo. Stroke is drawn expanded
+ * (not scaled) so thickness stays even on wide cards.
+ */
+internal fun DrawScope.drawCenteredAcrylicUnderLayer(
+    insetPx: Float,
+    cornerPx: Float,
+    strokePx: Float,
+) {
+    val extra = insetPx
+    val topLeft = Offset(-extra, -extra)
+    val pane = Size(size.width + extra * 2f, size.height + extra * 2f)
+    val outerCorner = CornerRadius(cornerPx + extra)
+    val glow = extra
+    drawRoundRect(
+        color = ConfluenceColors.AcrylicEdge.copy(alpha = 0.10f),
+        topLeft = Offset(-extra - glow / 2f, -extra - glow / 2f),
+        size = Size(size.width + extra * 2f + glow, size.height + extra * 2f + glow),
+        cornerRadius = CornerRadius(cornerPx + extra + glow / 2f),
+        style = Stroke(width = glow),
+    )
+    drawRoundRect(
+        color = ConfluenceColors.AcrylicEdge.copy(alpha = ConfluenceDimens.acrylicEdgeAlpha),
+        topLeft = topLeft,
+        size = pane,
+        cornerRadius = outerCorner,
+        style = Stroke(width = strokePx),
+    )
+}
 
 internal fun DrawScope.drawPlasmaBloom(cornerPx: Float) {
     val inflate = 14.dp.toPx()
