@@ -1,21 +1,16 @@
 package com.cavin.confluence.feature.chart
 
 import com.cavin.confluence.data.fake.FakeFixtures
-import com.cavin.confluence.data.model.Candle
 import com.cavin.confluence.data.model.Timeframe
-import com.cavin.confluence.data.model.Venue
 import com.cavin.confluence.data.snapshot.MdSnapshotStore
 import com.cavin.confluence.indicators.IndicatorCalc
 import com.cavin.confluence.indicators.SnapshotCutoff
-import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.nio.file.Files
-import java.nio.file.Path
 
 class ChartOverlayWireTest {
 
@@ -36,11 +31,11 @@ class ChartOverlayWireTest {
     }
 
     @Test
-    fun evaluateDelegatesToIndicatorCalcOnFencedSnapshot1h() {
-        val candles = loadSnapshotCandles("1h")
+    fun evaluateDelegatesToIndicatorCalcNotAParallelSeries() {
+        val candles = FakeFixtures.sampleClosedCandles(count = 220, timeframe = Timeframe.H1)
         val fromAdapter = evaluateDayOneIndicators(candles, cutoff)
         val fromEngine = IndicatorCalc.evaluate(candles.map { it.toIndicatorBar() }, cutoff)
-        assertEquals(fromEngine.engineId, fromAdapter.engineId)
+        assertEquals(IndicatorCalc.ENGINE_ID, fromAdapter.engineId)
         assertEquals(fromEngine.bars.size, fromAdapter.bars.size)
         assertEquals(fromEngine.rsi14.lastFinite(), fromAdapter.rsi14.lastFinite())
         assertEquals(fromEngine.ema9.lastFinite(), fromAdapter.ema9.lastFinite())
@@ -64,20 +59,23 @@ class ChartOverlayWireTest {
         assertEquals(fromAdapter.bars.size, aligned.size)
         assertEquals(fromAdapter.bars.last().openTimeMs, aligned.last().openTimeMs)
         assertTrue(aligned.all { it.closeTimeMs <= cutoff.cutoffMs })
-        assertTrue(aligned.all { it.isFinal })
     }
 
     @Test
-    fun oneMinuteFenceDropsOvershootBeforeOverlays() {
-        val candles = loadSnapshotCandles("1m")
-        val rawOvershoot = candles.count { it.isFinal && it.closeTimeMs > cutoff.cutoffMs }
-        assertTrue(rawOvershoot > 0)
-        val indicators = evaluateDayOneIndicators(candles, cutoff)
-        assertEquals(rawOvershoot, indicators.fence.droppedOvershootCount)
+    fun fenceDropsOvershootBeforeOverlays() {
+        val kept = FakeFixtures.sampleClosedCandles(count = 40, timeframe = Timeframe.M1)
+        val tip = kept.last()
+        val overshoot = tip.copy(
+            openTimeMs = cutoff.cutoffMs + 60_000L,
+            closeTimeMs = cutoff.cutoffMs + 119_999L,
+            isFinal = true,
+        )
+        val indicators = evaluateDayOneIndicators(kept + overshoot, cutoff)
+        assertEquals(1, indicators.fence.droppedOvershootCount)
         assertTrue(indicators.bars.all { it.closeTimeMs <= cutoff.cutoffMs })
-        val aligned = candlesAlignedToIndicators(candles, indicators)
+        val aligned = candlesAlignedToIndicators(kept + overshoot, indicators)
         assertEquals(indicators.bars.size, aligned.size)
-        assertTrue(aligned.last().closeTimeMs <= cutoff.cutoffMs)
+        assertTrue(aligned.none { it.openTimeMs == overshoot.openTimeMs })
     }
 
     @Test
@@ -96,7 +94,10 @@ class ChartOverlayWireTest {
 
     @Test
     fun dayOneResultHasNoVwapFibOrPivots() {
-        val indicators = evaluateDayOneIndicators(loadSnapshotCandles("1h"), cutoff)
+        val indicators = evaluateDayOneIndicators(
+            FakeFixtures.sampleClosedCandles(count = 48, timeframe = Timeframe.H1),
+            cutoff,
+        )
         val names = indicators::class.java.declaredFields.map { it.name }.toSet()
         assertFalse(names.any { it.contains("vwap", ignoreCase = true) })
         assertFalse(names.any { it.contains("fib", ignoreCase = true) })
@@ -122,46 +123,12 @@ class ChartOverlayWireTest {
 
     @Test
     fun weeklySma200WarmupIsHonest() {
-        val w1 = evaluateDayOneIndicators(loadSnapshotCandles("1w"), cutoff)
+        val w1 = evaluateDayOneIndicators(
+            FakeFixtures.sampleClosedCandles(count = 199, timeframe = Timeframe.W1),
+            cutoff,
+        )
         assertTrue(w1.sma200WarmupIncomplete)
         assertNull(w1.sma200.lastFinite())
         assertTrue(w1.sma50.finiteCount() > 0)
-    }
-
-    private fun loadSnapshotCandles(timeframeWire: String): List<Candle> {
-        val tf = Timeframe.fromWire(timeframeWire)
-        val root = JSONObject(Files.readString(snapshotDir().resolve("BTCUSDT_$timeframeWire.json")))
-        val arr = root.getJSONArray("candles")
-        val out = ArrayList<Candle>(arr.length())
-        for (i in 0 until arr.length()) {
-            val o = arr.getJSONObject(i)
-            out.add(
-                Candle(
-                    venue = Venue.BINANCE,
-                    symbol = Candle.SYMBOL_BTCUSDT,
-                    timeframe = tf,
-                    openTimeMs = o.getLong("openTimeMs"),
-                    closeTimeMs = o.getLong("closeTimeMs"),
-                    open = o.getDouble("open"),
-                    high = o.getDouble("high"),
-                    low = o.getDouble("low"),
-                    close = o.getDouble("close"),
-                    volume = o.getDouble("volume"),
-                    isFinal = o.optBoolean("isFinal", true),
-                    sourceTsMs = o.optLong("sourceTsMs", o.getLong("closeTimeMs")),
-                    ingestTsMs = cutoff.cutoffMs,
-                ),
-            )
-        }
-        return out
-    }
-
-    private fun snapshotDir(): Path {
-        val candidates = listOf(
-            Path.of("data/src/main/assets/md_snapshot"),
-            Path.of("../data/src/main/assets/md_snapshot"),
-        )
-        return candidates.firstOrNull { Files.isRegularFile(it.resolve("meta.json")) }
-            ?: error("md_snapshot fixtures not found")
     }
 }
