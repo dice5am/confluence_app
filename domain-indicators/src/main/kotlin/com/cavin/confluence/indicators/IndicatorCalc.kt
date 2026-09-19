@@ -21,6 +21,35 @@ object IndicatorCalc {
     }
 
     /**
+     * Causal / as-of evaluation: apply the global [cutoff] fence, then keep only
+     * bars with `closeTimeMs <= asOfCloseTimeMs`.
+     *
+     * Overlay points at bar `i` MUST come from this window (or an equivalent
+     * prefix). [evaluate] on the full fenced series is as-of the last kept bar
+     * only — it is not a pre-baked historical store. In particular
+     * [DayOneIndicators.volumeProfile] on a full evaluate is the last-24
+     * snapshot ending at the last fenced bar, not the VP that was known at
+     * an earlier bar.
+     */
+    fun evaluateAsOf(
+        bars: List<IndicatorBar>,
+        cutoff: SnapshotCutoff,
+        asOfCloseTimeMs: Long,
+    ): DayOneIndicators {
+        val fenced = CandleFence.apply(bars, cutoff)
+        val prefix = fenced.bars.filter { it.closeTimeMs <= asOfCloseTimeMs }
+        return computeFromFenced(
+            FencedWindow(
+                cutoff = cutoff,
+                inputCount = fenced.inputCount,
+                bars = prefix,
+                droppedFormingCount = fenced.droppedFormingCount,
+                droppedOvershootCount = fenced.droppedOvershootCount,
+            ),
+        )
+    }
+
+    /**
      * Update after a newly closed (or revised-tip) bar. Forming bars and
      * `closeTimeMs > cutoffMs` are ignored, matching [CandleFence].
      */
@@ -99,6 +128,7 @@ data class DayOneIndicators(
     val sma50: AlignedSeries,
     val sma200: AlignedSeries,
     val ichimoku: IchimokuResult,
+    /** Last-24 snapshot as-of [fence.lastCloseTimeMs] — not a per-bar series. */
     val volumeProfile: VolumeProfileResult,
 ) {
     val sma200WarmupIncomplete: Boolean get() = sma200.finiteCount() == 0

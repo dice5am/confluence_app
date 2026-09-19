@@ -26,6 +26,10 @@ object VolumeProfile {
             "Snapshot 1h depth is ~20d, well under MD-1.1 1m caps; this engine never " +
             "assumes >90d of 1m."
 
+    /**
+     * Last-[LOOKBACK_BARS] snapshot of [fencedClosedBars] (as-of the last
+     * provided bar). Not a historical series — see [computeAsOf].
+     */
     fun compute(fencedClosedBars: List<IndicatorBar>): VolumeProfileResult {
         val window = fencedClosedBars.takeLast(LOOKBACK_BARS)
         if (window.isEmpty()) {
@@ -111,6 +115,18 @@ object VolumeProfile {
             notes = SESSION_NOTE,
         )
     }
+
+    /**
+     * Volume profile known at [asOfCloseTimeMs]: last [LOOKBACK_BARS] fenced
+     * closed bars with `closeTimeMs <= asOfCloseTimeMs`. Future bars in
+     * [fencedClosedBars] are ignored.
+     */
+    fun computeAsOf(
+        fencedClosedBars: List<IndicatorBar>,
+        asOfCloseTimeMs: Long,
+    ): VolumeProfileResult = compute(
+        fencedClosedBars.filter { it.closeTimeMs <= asOfCloseTimeMs },
+    )
 
     private fun distribute(
         volumes: DoubleArray,

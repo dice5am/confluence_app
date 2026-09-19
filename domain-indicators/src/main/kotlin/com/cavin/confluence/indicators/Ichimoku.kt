@@ -3,9 +3,20 @@ package com.cavin.confluence.indicators
 /**
  * Ichimoku with standard defaults 9 / 26 / 52, displacement 26 (ALT-1.2 §3.6).
  *
- * Tenkan / Kijun / Senkou-B raw are Donchian midpoints at calculation time.
- * Senkou A/B in [IchimokuResult] are **plot-aligned** (shifted forward by
- * [DISPLACEMENT]). Chikou is plot-aligned as `close[i + displacement]`.
+ * Tenkan / Kijun / Senkou-B raw are Donchian midpoints at calculation time
+ * (known at bar `i`'s `closeTimeMs`).
+ *
+ * Senkou A/B in [IchimokuResult.senkouA] / [IchimokuResult.senkouB] are
+ * **plot-aligned** (raw value from `i - displacement`). Those plot values
+ * are known at bar `i` because they were computed 26 bars earlier.
+ * [IchimokuResult.senkouARaw] / [IchimokuResult.senkouBRaw] are the same
+ * numbers **before** the +26 shift — known at `i`, drawn at `i + 26`
+ * (see [IchimokuResult.forwardCloud] past the last bar).
+ *
+ * Chikou is plot-aligned as `close[i + displacement]`. That plot slot is
+ * **not** known at bar `i`; it becomes known when bar `i + 26` closes.
+ * The close that *is* known at `i` is `bars[i].close`, drawn at plot
+ * index `i - 26`. Use [IndicatorCalc.evaluateAsOf] for causal reads.
  *
  * Forward cloud points beyond the last bar use projected timestamps
  * (`lastOpen + k * barDuration`) — they are displaced plots, not invented candles.
@@ -25,6 +36,8 @@ object Ichimoku {
                 kijun = AlignedSeries(emptyList(), emptyList()),
                 senkouA = AlignedSeries(emptyList(), emptyList()),
                 senkouB = AlignedSeries(emptyList(), emptyList()),
+                senkouARaw = AlignedSeries(emptyList(), emptyList()),
+                senkouBRaw = AlignedSeries(emptyList(), emptyList()),
                 chikou = AlignedSeries(emptyList(), emptyList()),
                 displacement = DISPLACEMENT,
                 forwardCloud = emptyList(),
@@ -80,6 +93,8 @@ object Ichimoku {
             kijun = AlignedSeries(times, kijunRaw.toList()),
             senkouA = AlignedSeries(times, senkouAPlot.toList()),
             senkouB = AlignedSeries(times, senkouBPlot.toList()),
+            senkouARaw = AlignedSeries(times, senkouARaw.toList()),
+            senkouBRaw = AlignedSeries(times, senkouBRaw.toList()),
             chikou = AlignedSeries(times, chikouPlot.toList()),
             displacement = DISPLACEMENT,
             forwardCloud = forward,
@@ -122,6 +137,14 @@ data class IchimokuResult(
     val kijun: AlignedSeries,
     val senkouA: AlignedSeries,
     val senkouB: AlignedSeries,
+    /** Donchian / midpoint known at this bar; plotted [displacement] bars forward. */
+    val senkouARaw: AlignedSeries,
+    /** Donchian-52 midpoint known at this bar; plotted [displacement] bars forward. */
+    val senkouBRaw: AlignedSeries,
+    /**
+     * Plot-aligned Chikou: `values[i] = close[i + displacement]`.
+     * Known at bar `i + displacement`, not at bar `i`.
+     */
     val chikou: AlignedSeries,
     val displacement: Int,
     val forwardCloud: List<IchimokuForwardPoint>,
