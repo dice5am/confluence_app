@@ -33,13 +33,19 @@ object MdSnapshotStore {
     private val byTf = LinkedHashMap<Timeframe, List<Candle>>()
 
     /**
-     * Packaged `meta.json` cutoffUtc. Used when assets aren't loaded (Compose previews).
-     * Must match `data/src/main/assets/md_snapshot/meta.json`.
+     * Packaged `meta.json` pin. Used when assets aren't loaded (Compose previews).
+     * Must match `data/src/main/assets/md_snapshot/meta.json` (PR #29).
      */
-    const val PACKAGED_CUTOFF_UTC = "2026-09-11 14:59 UTC"
+    const val PACKAGED_SNAPSHOT_VERSION = "md_snapshot@2026-09-19"
+    const val PACKAGED_CUTOFF_UTC = "2026-09-19 10:59 UTC"
+    const val PACKAGED_CUTOFF_MS = 1_789_815_599_999L
 
     val bannerLabel: String
-        get() = "Historical snapshot · as of ${cutoffUtcLabel.ifBlank { PACKAGED_CUTOFF_UTC }}"
+        get() {
+            val version = PACKAGED_SNAPSHOT_VERSION
+            val asOf = cutoffUtcLabel.ifBlank { PACKAGED_CUTOFF_UTC }
+            return "Historical snapshot · $version · $asOf"
+        }
 
     fun isLoaded(): Boolean = loaded.get()
 

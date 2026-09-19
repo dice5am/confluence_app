@@ -23,6 +23,8 @@ object ChartGeometry {
     val minVisibleCandles: Int get() = ConfluenceDimens.chartMinVisibleCandles
     val defaultVisibleCandles: Int get() = ConfluenceDimens.chartDefaultVisibleCandles
 
+    val rsiFraction: Float get() = ConfluenceDimens.chartRsiFraction
+
     data class Panes(
         val plotLeft: Float,
         val plotRight: Float,
@@ -33,7 +35,13 @@ object ChartGeometry {
         val volTop: Float,
         val volBottom: Float,
         val volHeight: Float,
-    )
+        val rsiTop: Float,
+        val rsiBottom: Float,
+        val rsiHeight: Float,
+    ) {
+        /** Bottom of the last data pane (RSI if shown, else volume/price). */
+        val dataBottom: Float get() = if (rsiHeight > 1f) rsiBottom else volBottom
+    }
 
     fun panes(
         width: Float,
@@ -43,17 +51,25 @@ object ChartGeometry {
         topPad: Float,
         bottomPad: Float,
         showVolume: Boolean,
+        showRsi: Boolean = false,
         volumeFraction: Float = this.volumeFraction,
+        rsiFraction: Float = this.rsiFraction,
     ): Panes {
         val plotLeft = leftPad
         val plotRight = (width - rightPad).coerceAtLeast(plotLeft + 1f)
         val plotWidth = (plotRight - plotLeft).coerceAtLeast(1f)
         val plotBottom = (height - bottomPad).coerceAtLeast(topPad + 1f)
         val usable = (plotBottom - topPad).coerceAtLeast(1f)
-        val volH = if (showVolume) usable * volumeFraction else 0f
-        val priceH = (usable - volH).coerceAtLeast(1f)
+        val rsiH = if (showRsi) usable * rsiFraction else 0f
+        val priceVolUsable = (usable - rsiH).coerceAtLeast(1f)
+        val volH = if (showVolume) priceVolUsable * volumeFraction else 0f
+        val priceH = (priceVolUsable - volH).coerceAtLeast(1f)
         val priceTop = topPad
         val priceBottom = priceTop + priceH
+        val volTop = priceBottom
+        val volBottom = volTop + volH
+        val rsiTop = volBottom
+        val rsiBottom = rsiTop + rsiH
         return Panes(
             plotLeft = plotLeft,
             plotRight = plotRight,
@@ -61,9 +77,12 @@ object ChartGeometry {
             priceTop = priceTop,
             priceBottom = priceBottom,
             priceHeight = priceH,
-            volTop = priceBottom,
-            volBottom = plotBottom,
+            volTop = volTop,
+            volBottom = volBottom,
             volHeight = volH,
+            rsiTop = rsiTop,
+            rsiBottom = rsiBottom,
+            rsiHeight = rsiH,
         )
     }
 
@@ -156,6 +175,32 @@ object ChartGeometry {
 
     fun yFor(price: Float, domain: YDomain, priceTop: Float, priceHeight: Float): Float =
         priceTop + priceHeight - ((price - domain.lo) / domain.span) * priceHeight
+
+    fun yForRsi(value: Float, rsiTop: Float, rsiHeight: Float, lo: Float = 0f, hi: Float = 100f): Float {
+        val span = (hi - lo).coerceAtLeast(1e-3f)
+        return rsiTop + rsiHeight - ((value - lo) / span) * rsiHeight
+    }
+
+    fun slotIndexOf(openTimes: LongArray, openTimeMs: Long): Int {
+        var lo = 0
+        var hi = openTimes.lastIndex
+        while (lo <= hi) {
+            val mid = (lo + hi) ushr 1
+            val at = openTimes[mid]
+            when {
+                at < openTimeMs -> lo = mid + 1
+                at > openTimeMs -> hi = mid - 1
+                else -> return mid
+            }
+        }
+        return -1
+    }
+
+    fun expandVisibleRange(lo: Float, hi: Float, candidate: Double?): Pair<Float, Float> {
+        if (candidate == null || !candidate.isFinite()) return lo to hi
+        val v = candidate.toFloat()
+        return min(lo, v) to max(hi, v)
+    }
 
     fun bodyHeightPx(openY: Float, closeY: Float, minDojiPx: Float): Float =
         bodyRect(openY, closeY, minDojiPx).height

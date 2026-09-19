@@ -32,7 +32,7 @@ Intended remote (when unlocked): `https://github.com/dice5am/confluence_app`
 | `:data` | MD-1.1 shaped models + `MarketDataApi` / fixtures (no exchange SDKs) |
 | `:domain-indicators` | Local five-auto calc engine (RSI, volume, MAs, Ichimoku, VP). No UI. |
 | `:feature-home` | Home hub (price / %Δ / freshness / Open chart / Alerts badge) |
-| `:feature-chart` | **Stub only** — “Chart — Phase 2”; no Canvas candle engine |
+| `:feature-chart` | Compose Canvas candles + five-auto overlays from `:domain-indicators` |
 | `:feature-alerts` | Stub inbox / placeholder |
 
 ### Dependency direction
@@ -40,7 +40,7 @@ Intended remote (when unlocked): `https://github.com/dice5am/confluence_app`
 ```
 app → feature-* → core-ui
                 ↘ data
-`:domain-indicators` is a JVM calc library (Charts/Alerts may depend later; **not wired** this pass).
+feature-chart → :domain-indicators  (IndicatorCalc; no calc math in UI)
 app → core-ui, data
 ```
 

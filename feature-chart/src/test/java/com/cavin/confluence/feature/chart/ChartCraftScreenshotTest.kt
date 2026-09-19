@@ -60,6 +60,25 @@ class ChartCraftScreenshotTest {
     }
 
     @Test
+    fun overlaysMasIchimokuVpRsiVolume() {
+        snap("chart-overlays-1h-mas-ichi-vp-rsi-vol") {
+            ChartPreviewOverlays()
+        }
+    }
+
+    @Test
+    fun overlaysTfSwitched1dWithBadge() {
+        val state = chartProofUiState(Timeframe.D1, count = 220)
+        snap("chart-overlays-1d-tf-snapshot-badge") {
+            ConfluenceTheme {
+                PreviewAppShell(selectedId = "chart") {
+                    ChartScreen(state = state)
+                }
+            }
+        }
+    }
+
+    @Test
     fun default1hWithHairline() {
         val state = chartProofUiState(Timeframe.H1, count = 64)
         snap("chart-1h-hairline-snapshot") {

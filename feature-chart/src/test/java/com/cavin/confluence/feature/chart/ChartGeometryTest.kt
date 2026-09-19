@@ -109,4 +109,33 @@ class ChartGeometryTest {
     fun volumeBarsUseLowAlpha() {
         assertEquals(0.35f, ChartGeometry.volumeAlpha, 0.001f)
     }
+
+    @Test
+    fun rsiPaneSitsUnderVolumeWithoutBreakingEighteenPercent() {
+        assertEquals(0.12f, ChartGeometry.rsiFraction, 0.0001f)
+        val panes = ChartGeometry.panes(
+            width = 400f,
+            height = 1000f,
+            leftPad = 8f,
+            rightPad = 56f,
+            topPad = 8f,
+            bottomPad = 22f,
+            showVolume = true,
+            showRsi = true,
+        )
+        val priceVol = panes.priceHeight + panes.volHeight
+        assertEquals(0.18f, panes.volHeight / priceVol, 0.001f)
+        val usable = 1000f - 8f - 22f
+        assertEquals(usable * 0.12f, panes.rsiHeight, 0.5f)
+        assertEquals(panes.priceBottom, panes.volTop, 0.01f)
+        assertEquals(panes.volBottom, panes.rsiTop, 0.01f)
+        assertEquals(panes.rsiBottom, panes.dataBottom, 0.01f)
+    }
+
+    @Test
+    fun slotIndexOfFindsOpenTime() {
+        val times = longArrayOf(10L, 20L, 30L, 40L)
+        assertEquals(2, ChartGeometry.slotIndexOf(times, 30L))
+        assertEquals(-1, ChartGeometry.slotIndexOf(times, 25L))
+    }
 }

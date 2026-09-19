@@ -40,6 +40,7 @@ import com.cavin.confluence.core.ui.theme.ConfluenceTheme
 import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
 import com.cavin.confluence.data.fake.FakeFixtures
 import com.cavin.confluence.data.model.Candle
+import com.cavin.confluence.indicators.DayOneIndicators
 import kotlin.math.max
 import kotlin.math.min
 
@@ -71,8 +72,12 @@ fun CandleChart(
     seriesKey: String = "",
     onCrosshairCandle: (Candle?) -> Unit = {},
     viewportSeed: ChartViewportSeed = ChartViewportSeed(),
+    indicators: DayOneIndicators? = null,
+    overlays: ChartOverlayVisibility = ChartOverlayVisibility(),
 ) {
     if (candles.isEmpty()) return
+    val showVolPane = showVolume && overlays.volume
+    val showRsiPane = overlays.rsi && indicators != null
 
     val chartColors = ConfluenceThemeAccess.chartColors
     val dimens = ConfluenceDimens
@@ -87,6 +92,7 @@ fun CandleChart(
     val wickStroke = with(density) { dimens.chartWickStroke.toPx() }
     val gridStroke = with(density) { dimens.chartGridStroke.toPx() }
     val hairlineStroke = with(density) { dimens.chartHairlineStroke.toPx() }
+    val overlayStroke = hairlineStroke.coerceAtLeast(dimens.chartOverlayStroke)
     val crosshairStroke = with(density) { dimens.chartCrosshairStroke.toPx() }
     val bloomPx = with(density) { dimens.chartBodyBloom.toPx() }
     val minDojiPx = max(with(density) { dimens.chartMinDojiBody.toPx() }, 2f)
@@ -209,7 +215,8 @@ fun CandleChart(
             rightPad = rightPad,
             topPad = topPad,
             bottomPad = bottomPad,
-            showVolume = showVolume,
+            showVolume = showVolPane,
+            showRsi = showRsiPane,
         )
         val cw = candleWidthPx
         val win = ChartGeometry.window(
@@ -228,6 +235,29 @@ fun CandleChart(
             lo = min(lo, c.low.toFloat())
             hi = max(hi, c.high.toFloat())
             if (c.volume > maxVol) maxVol = c.volume
+        }
+        val overlay = indicators
+        if (overlay != null) {
+            val expanded = ChartOverlayRenderer.expandPriceRange(
+                candles = candles,
+                indicators = overlay,
+                overlays = overlays,
+                startIndex = win.startIndex,
+                endIndex = win.endIndex,
+                rawLo = lo,
+                rawHi = hi,
+            )
+            lo = expanded.first
+            hi = expanded.second
+            if (showVolPane) {
+                maxVol = ChartOverlayRenderer.maxVolumeInWindow(
+                    candles = candles,
+                    indicators = overlay,
+                    startIndex = win.startIndex,
+                    endIndex = win.endIndex,
+                    includeSma = true,
+                )
+            }
         }
         val domain = ChartGeometry.yDomain(lo, hi)
         val tf = candles[win.startIndex].timeframe
@@ -252,7 +282,7 @@ fun CandleChart(
             )
         }
 
-        if (showVolume && panes.volHeight > 1f) {
+        if (showVolPane && panes.volHeight > 1f) {
             drawLine(
                 color = chartColors.grid,
                 start = Offset(panes.plotLeft, panes.volTop),
@@ -261,7 +291,7 @@ fun CandleChart(
             )
         }
 
-        if (showVolume && panes.volHeight > 1f && maxVol > 0.0) {
+        if (showVolPane && panes.volHeight > 1f && maxVol > 0.0) {
             val barW = cw * ChartGeometry.bodyFraction
             clipRect(panes.plotLeft, panes.volTop, panes.plotRight, panes.volBottom) {
                 for (i in win.startIndex until win.endIndex) {
@@ -275,6 +305,20 @@ fun CandleChart(
                         color = color,
                         topLeft = Offset(cx - barW / 2f, panes.volBottom - h),
                         size = Size(barW, h.coerceAtLeast(1f)),
+                    )
+                }
+            }
+            if (overlay != null) {
+                with(ChartOverlayRenderer) {
+                    drawVolumeSma(
+                        candles = candles,
+                        indicators = overlay,
+                        colors = chartColors,
+                        panes = panes,
+                        win = win,
+                        maxVol = maxVol,
+                        stroke = overlayStroke,
+                        xSlot = { xSlot(it) },
                     )
                 }
             }
@@ -318,6 +362,35 @@ fun CandleChart(
             }
         }
 
+        if (overlay != null) {
+            with(ChartOverlayRenderer) {
+                drawPriceOverlays(
+                    candles = candles,
+                    indicators = overlay,
+                    overlays = overlays,
+                    colors = chartColors,
+                    panes = panes,
+                    win = win,
+                    candleWidthPx = cw,
+                    stroke = overlayStroke,
+                    yPrice = { yPrice(it) },
+                    xSlot = { xSlot(it) },
+                )
+                if (showRsiPane) {
+                    drawRsiPane(
+                        candles = candles,
+                        indicators = overlay,
+                        colors = chartColors,
+                        panes = panes,
+                        win = win,
+                        stroke = overlayStroke,
+                        gridStroke = gridStroke,
+                        xSlot = { xSlot(it) },
+                    )
+                }
+            }
+        }
+
         val last = candles.last()
         val lastY = yPrice(last.close.toFloat())
         if (lastY in panes.priceTop..panes.priceBottom) {
@@ -332,7 +405,7 @@ fun CandleChart(
         drawLine(
             color = ConfluenceColors.BorderSubtle,
             start = Offset(panes.plotRight, panes.priceTop),
-            end = Offset(panes.plotRight, panes.volBottom),
+            end = Offset(panes.plotRight, panes.dataBottom),
             strokeWidth = gridStroke,
         )
 
@@ -353,6 +426,24 @@ fun CandleChart(
                 textY,
                 axisPaint,
             )
+        }
+
+        if (showRsiPane && panes.rsiHeight > 1f) {
+            axisPaint.textAlign = Paint.Align.LEFT
+            axisPaint.color = ConfluenceColors.OnSurfaceMuted.toArgb()
+            for (guide in floatArrayOf(30f, 70f)) {
+                val gy = ChartGeometry.yForRsi(guide, panes.rsiTop, panes.rsiHeight)
+                val textY = (gy - (font.ascent + font.descent) / 2f).coerceIn(
+                    panes.rsiTop - font.ascent,
+                    panes.rsiBottom - font.descent,
+                )
+                drawContext.canvas.nativeCanvas.drawText(
+                    guide.toInt().toString(),
+                    labelX,
+                    textY,
+                    axisPaint,
+                )
+            }
         }
 
         val slots = ChartAxisLabels.timeSlotIndices(
@@ -377,8 +468,8 @@ fun CandleChart(
             if (right > panes.plotRight + axisTick) continue
             drawLine(
                 color = ConfluenceColors.Outline,
-                start = Offset(cx, panes.volBottom),
-                end = Offset(cx, panes.volBottom + axisTick),
+                start = Offset(cx, panes.dataBottom),
+                end = Offset(cx, panes.dataBottom + axisTick),
                 strokeWidth = gridStroke,
             )
             drawContext.canvas.nativeCanvas.drawText(label, cx, timeY, axisPaint)
@@ -414,7 +505,7 @@ fun CandleChart(
                 drawLine(
                     color = chartColors.crosshair,
                     start = Offset(cx, panes.priceTop),
-                    end = Offset(cx, panes.volBottom),
+                    end = Offset(cx, panes.dataBottom),
                     strokeWidth = crosshairStroke,
                     pathEffect = dash,
                 )
@@ -445,7 +536,7 @@ fun CandleChart(
                 drawAxisTag(
                     text = ChartAxisLabels.formatTime(snapped.openTimeMs, snapped.timeframe),
                     anchorX = cx,
-                    anchorY = panes.volBottom + bottomPad / 2f,
+                    anchorY = panes.dataBottom + bottomPad / 2f,
                     paint = tagPaint,
                     background = ConfluenceColors.VoidElevated,
                     textColor = ConfluenceColors.Plasma,
@@ -455,7 +546,7 @@ fun CandleChart(
                     corner = tagCorner,
                     minX = 0f,
                     maxX = panes.plotRight,
-                    minY = panes.volBottom,
+                    minY = panes.dataBottom,
                     maxY = size.height,
                     centerHorizontally = true,
                 )

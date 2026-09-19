@@ -47,6 +47,25 @@ data class ChartSafeColors(
     val healthDegraded: androidx.compose.ui.graphics.Color = ConfluenceColors.HealthDegraded,
     val healthStale: androidx.compose.ui.graphics.Color = ConfluenceColors.HealthStale,
     val healthDisconnected: androidx.compose.ui.graphics.Color = ConfluenceColors.HealthDisconnected,
+    // Overlay strokes — existing cyan-ice tokens only (no freestyle palette).
+    val ema9: androidx.compose.ui.graphics.Color = ConfluenceColors.Plasma,
+    val ema21: androidx.compose.ui.graphics.Color = ConfluenceColors.Bloom,
+    val sma50: androidx.compose.ui.graphics.Color = ConfluenceColors.Ice,
+    val sma200: androidx.compose.ui.graphics.Color = ConfluenceColors.Muted,
+    val ichimokuTenkan: androidx.compose.ui.graphics.Color = ConfluenceColors.Bracket,
+    val ichimokuKijun: androidx.compose.ui.graphics.Color = ConfluenceColors.AcrylicEdge,
+    val ichimokuSpanA: androidx.compose.ui.graphics.Color = ConfluenceColors.Ice,
+    val ichimokuSpanB: androidx.compose.ui.graphics.Color = ConfluenceColors.Muted,
+    val ichimokuChikou: androidx.compose.ui.graphics.Color = ConfluenceColors.GradEnd,
+    val ichimokuCloudBull: androidx.compose.ui.graphics.Color = ConfluenceColors.Ice,
+    val ichimokuCloudBear: androidx.compose.ui.graphics.Color = ConfluenceColors.Muted,
+    val volumeSma: androidx.compose.ui.graphics.Color = ConfluenceColors.Ice,
+    val rsi: androidx.compose.ui.graphics.Color = ConfluenceColors.Plasma,
+    val rsiGuide: androidx.compose.ui.graphics.Color = ConfluenceColors.Ice,
+    val rsiMid: androidx.compose.ui.graphics.Color = ConfluenceColors.Dim,
+    val vpPoc: androidx.compose.ui.graphics.Color = ConfluenceColors.Warn,
+    val vpVah: androidx.compose.ui.graphics.Color = ConfluenceColors.Ice,
+    val vpVal: androidx.compose.ui.graphics.Color = ConfluenceColors.Muted,
 )
 
 val LocalChartSafeColors = staticCompositionLocalOf { ChartSafeColors() }

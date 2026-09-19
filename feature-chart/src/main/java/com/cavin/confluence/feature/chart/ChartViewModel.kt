@@ -19,6 +19,9 @@ import com.cavin.confluence.data.snapshot.MdSnapshotStore
 import com.cavin.confluence.data.snapshot.SnapshotMarketDataApi
 import com.cavin.confluence.data.remote.ResilientMarketDataApi
 import com.cavin.confluence.data.series.CandleSeries
+import com.cavin.confluence.indicators.DayOneIndicators
+import com.cavin.confluence.indicators.IndicatorCalc
+import com.cavin.confluence.indicators.SnapshotCutoff
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +41,8 @@ data class ChartUiState(
     val health: MarketHealth? = null,
     val crosshair: Candle? = null,
     val showVolume: Boolean = true,
+    val overlays: ChartOverlayVisibility = ChartOverlayVisibility(),
+    val indicators: DayOneIndicators? = null,
     val error: String? = null,
     val lastTfSwitchMs: Long? = null,
     /** True when ResilientMarketDataApi fell back to fixtures. */
@@ -60,6 +65,8 @@ class ChartViewModel(
 
     /** Full series before LOD — live updates mutate tip here, then re-project draw list. */
     private var rawSeries: List<Candle> = emptyList()
+    private var latestIndicators: DayOneIndicators? = null
+    private var latestCutoff: SnapshotCutoff = SnapshotCutoff.PACKAGED_2026_09_19
 
     private var liveJob: Job? = null
     private var healthJob: Job? = null
@@ -100,33 +107,40 @@ class ChartViewModel(
             withContext(Dispatchers.Default) {
                 val raw = api.getHistory(venue = Venue.BINANCE, timeframe = tf)
                 val health = api.getHealth(Venue.BINANCE)
-                val drawn = CandleLod.maybeDecimate(raw, tf)
-                ChartPerf.logSeriesStats(tf, raw.size, drawn.size)
-                ChartPerf.assertLodBudget(raw, tf)
-                Triple(raw, drawn, health)
+                val cutoff = resolveSnapshotCutoff()
+                val indicators = evaluateDayOneIndicators(raw, cutoff)
+                val fenced = candlesAlignedToIndicators(raw, indicators)
+                val drawn = CandleLod.maybeDecimate(fenced, tf)
+                ChartPerf.logSeriesStats(tf, fenced.size, drawn.size)
+                ChartPerf.assertLodBudget(fenced, tf)
+                ChartLoaded(raw = fenced, drawn = drawn, health = health, indicators = indicators, cutoff = cutoff)
             }
-        }.onSuccess { (raw, drawn, health) ->
+        }.onSuccess { loaded ->
             val dt = SystemClock.elapsedRealtime() - started
             Log.d(PERF, "$label ${dt}ms" + if (isTfSwitch) " (DoD <100ms cached)" else "")
-            rawSeries = raw
+            rawSeries = loaded.raw
+            latestIndicators = loaded.indicators
+            latestCutoff = loaded.cutoff
             val fixtures = (api as? ResilientMarketDataApi)?.usingFixtures == true
             val snapBanner = when {
                 api is SnapshotMarketDataApi -> MdSnapshotStore.bannerLabel
-                health.note?.startsWith("Historical snapshot") == true -> health.note
+                loaded.health.note?.startsWith("Historical snapshot") == true -> loaded.health.note
                 MdSnapshotStore.isLoaded() && fixtures -> MdSnapshotStore.bannerLabel
                 else -> null
             }
             _ui.update {
                 it.copy(
                     loading = false,
-                    candles = drawn,
-                    rawCandleCount = raw.size,
-                    health = health,
+                    candles = loaded.drawn,
+                    rawCandleCount = loaded.raw.size,
+                    health = loaded.health,
                     venue = Venue.BINANCE,
-                    error = if (drawn.isEmpty()) "No candles" else null,
+                    error = if (loaded.drawn.isEmpty()) "No candles" else null,
                     lastTfSwitchMs = if (isTfSwitch) dt else it.lastTfSwitchMs,
                     usingFixtures = fixtures || api is SnapshotMarketDataApi,
                     snapshotBanner = snapBanner,
+                    indicators = loaded.indicators,
+                    overlays = it.overlays.copy(volume = it.showVolume),
                 )
             }
             // Snapshot mode: no live WS; still observe static health once.
@@ -156,21 +170,33 @@ class ChartViewModel(
                 val nextRaw = CandleSeries.applyLive(rawSeries, tick)
                 if (nextRaw === rawSeries) return@collect
                 rawSeries = nextRaw
-                // Tip-only path: if under LOD budget, swap tip / append without rebucket.
-                val drawn = if (nextRaw.size <= CandleLod.DEFAULT_MAX_POINTS) {
-                    nextRaw
+                val nextIndicators = when {
+                    tick.isFinal -> {
+                        val current = latestIndicators
+                        if (current != null) {
+                            IndicatorCalc.onClosedBar(current, tick.toIndicatorBar())
+                        } else {
+                            evaluateDayOneIndicators(nextRaw, latestCutoff)
+                        }
+                    }
+                    else -> latestIndicators
+                }
+                latestIndicators = nextIndicators
+                val fenced = nextIndicators?.let { candlesAlignedToIndicators(nextRaw, it) } ?: nextRaw
+                val drawn = if (fenced.size <= CandleLod.DEFAULT_MAX_POINTS) {
+                    fenced
                 } else {
-                    // Keep overview LOD of the body; tip stays accurate via full rebucket (rare).
-                    CandleLod.maybeDecimate(nextRaw, tf)
+                    CandleLod.maybeDecimate(fenced, tf)
                 }
                 val dt = SystemClock.elapsedRealtime() - t0
                 Log.d(PERF, "liveAppend:${tf.wire} ${dt}ms tipFinal=${tick.isFinal} (no full history reload)")
                 _ui.update {
                     it.copy(
                         candles = drawn,
-                        rawCandleCount = nextRaw.size,
+                        rawCandleCount = fenced.size,
                         lastLiveAppendMs = dt,
                         usingFixtures = (api as? ResilientMarketDataApi)?.usingFixtures == true,
+                        indicators = nextIndicators,
                     )
                 }
             }
@@ -191,7 +217,17 @@ class ChartViewModel(
     }
 
     fun toggleVolume() {
-        _ui.update { it.copy(showVolume = !it.showVolume) }
+        toggleOverlay(ChartOverlayFamily.Volume)
+    }
+
+    fun toggleOverlay(family: ChartOverlayFamily) {
+        _ui.update {
+            val next = it.overlays.toggle(family)
+            it.copy(
+                overlays = next,
+                showVolume = next.volume,
+            )
+        }
     }
 
     companion object {
@@ -209,3 +245,11 @@ class ChartViewModel(
             }
     }
 }
+
+private data class ChartLoaded(
+    val raw: List<Candle>,
+    val drawn: List<Candle>,
+    val health: MarketHealth,
+    val indicators: DayOneIndicators,
+    val cutoff: SnapshotCutoff,
+)
