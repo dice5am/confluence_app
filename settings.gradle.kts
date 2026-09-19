@@ -20,6 +20,7 @@ include(
     ":app",
     ":core-ui",
     ":data",
+    ":domain-indicators",
     ":feature-home",
     ":feature-chart",
     ":feature-alerts",
