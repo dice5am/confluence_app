@@ -48,13 +48,24 @@ As-of API: `IndicatorCalc.evaluateAsOf(bars, cutoff, asOfCloseTimeMs)`.
 | Prefix | fenced bars `0..250` (251 bars), all `closeTimeMs <= 1788922799999` |
 | Full series | fenced 1h `0..498` (499 bars), last close `1789815599999` |
 
-**Causal overlay points (prefix vs full at index 250):** RSI, volume, volume SMA, EMA 9/21, SMA 50/200, Tenkan, Kijun, Senkou A/B **plot**, Senkou A/B **raw** — **match**.
+**Causal overlay points (prefix vs full at index 250):** RSI, volume, volume SMA, EMA 9/21, SMA 50/200, Tenkan, Kijun, Senkou A/B **plot**, Senkou A/B **raw** — **match**. Pinned values from `evaluateAsOf` (identical on the full series at this index):
+
+| Point | Prefix = full at i=250 |
+|-------|------------------------|
+| RSI-14 | 50.25641484462052 |
+| Volume SMA-20 | 747.073902 |
+| EMA 9 / 21 | 78649.150053 / 78664.647431 |
+| SMA 50 / 200 | 78978.239400 / 79034.746850 |
+| Tenkan / Kijun | 78600.07 / 78552.505 |
+| Senkou A/B **plot** (known earlier, drawn here) | 79360.0575 / 79619.995 |
+| Senkou A/B **raw** (known here, drawn at i+26) | 78576.2875 / 79090.0 |
+| Chikou **plot** | `null` on as-of (would be `close[276]` on full evaluate — not known at this close) |
 
 Evidence: `CalcHonestyLookAheadTest.sampleBarAudit1hPrefixMatchesFullAtIndex250`  
 and `causalSeriesOnFenced1hMatchPrefixEvaluate`.
 
-**Volume profile at this as-of:** `computeAsOf` / `evaluateAsOf` uses last 24 bars **ending at index 250** (`windowLastCloseTimeMs = 1788922799999`).  
-Full `evaluate` VP uses last 24 of the **whole** 1h series (`windowLastCloseTimeMs = 1789815599999`). Those snapshots are **not equal** — proving that reusing the full-series VP as a historical overlay at index 250 would peek ahead.
+**Volume profile at this as-of:** `computeAsOf` / `evaluateAsOf` uses last 24 bars **ending at index 250** (`windowLastCloseTimeMs = 1788922799999`) — POC 78463.0239, VAH 78753.2418, VAL 78228.0856.  
+Full `evaluate` VP uses last 24 of the **whole** 1h series (`windowLastCloseTimeMs = 1789815599999`, POC 81100.321). Those snapshots are **not equal** — proving that reusing the full-series VP as a historical overlay at index 250 would peek ahead.
 
 ### 3.2 Fenced 1d · index 250
 

@@ -217,26 +217,23 @@ class CalcHonestyLookAheadTest {
         assertThat(full.volumeProfile.windowLastCloseTimeMs).isEqualTo(fenced.last().closeTimeMs)
         assertThat(full.volumeProfile.windowLastCloseTimeMs).isNotEqualTo(prefix.volumeProfile.windowLastCloseTimeMs)
 
-        println(
-            "HONESTY_AUDIT_1H i=$i " +
-                "rsi=${prefix.rsi14.values[i]} " +
-                "volSma=${prefix.volumeSma20.values[i]} " +
-                "ema9=${prefix.ema9.values[i]} " +
-                "ema21=${prefix.ema21.values[i]} " +
-                "sma50=${prefix.sma50.values[i]} " +
-                "sma200=${prefix.sma200.values[i]} " +
-                "tenkan=${prefix.ichimoku.tenkan.values[i]} " +
-                "kijun=${prefix.ichimoku.kijun.values[i]} " +
-                "senkouAPlot=${prefix.ichimoku.senkouA.values[i]} " +
-                "senkouBPlot=${prefix.ichimoku.senkouB.values[i]} " +
-                "senkouARaw=${prefix.ichimoku.senkouARaw.values[i]} " +
-                "senkouBRaw=${prefix.ichimoku.senkouBRaw.values[i]} " +
-                "chikouPlot=${prefix.ichimoku.chikou.values[i]} " +
-                "vpAsOfPoc=${prefix.volumeProfile.pointOfControl} " +
-                "vpAsOfVah=${prefix.volumeProfile.valueAreaHigh} " +
-                "vpAsOfVal=${prefix.volumeProfile.valueAreaLow} " +
-                "vpFullPoc=${full.volumeProfile.pointOfControl}",
-        )
+        assertThat(prefix.rsi14.values[i]!!).isWithin(1e-9).of(50.25641484462052)
+        assertThat(prefix.volumeSma20.values[i]!!).isWithin(1e-9).of(747.0739020000003)
+        assertThat(prefix.ema9.values[i]!!).isWithin(1e-9).of(78649.15005315424)
+        assertThat(prefix.ema21.values[i]!!).isWithin(1e-9).of(78664.64743073574)
+        assertThat(prefix.sma50.values[i]!!).isWithin(1e-9).of(78978.23940000003)
+        assertThat(prefix.sma200.values[i]!!).isWithin(1e-9).of(79034.74685000003)
+        assertThat(prefix.ichimoku.tenkan.values[i]!!).isWithin(1e-9).of(78600.07)
+        assertThat(prefix.ichimoku.kijun.values[i]!!).isWithin(1e-9).of(78552.505)
+        assertThat(prefix.ichimoku.senkouA.values[i]!!).isWithin(1e-9).of(79360.0575)
+        assertThat(prefix.ichimoku.senkouB.values[i]!!).isWithin(1e-9).of(79619.995)
+        assertThat(prefix.ichimoku.senkouARaw.values[i]!!).isWithin(1e-9).of(78576.2875)
+        assertThat(prefix.ichimoku.senkouBRaw.values[i]!!).isWithin(1e-9).of(79090.0)
+        assertThat(prefix.ichimoku.chikou.values[i]).isNull()
+        assertThat(prefix.volumeProfile.pointOfControl!!).isWithin(1e-9).of(78463.0239)
+        assertThat(prefix.volumeProfile.valueAreaHigh!!).isWithin(1e-9).of(78753.2418)
+        assertThat(prefix.volumeProfile.valueAreaLow!!).isWithin(1e-9).of(78228.08559999999)
+        assertThat(full.volumeProfile.pointOfControl!!).isWithin(1e-9).of(81100.321)
     }
 
     @Test
