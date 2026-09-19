@@ -1,0 +1,30 @@
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+dependencies {
+    testImplementation(libs.junit)
+    testImplementation(libs.google.truth)
+    testImplementation(libs.org.json)
+}
+
+sourceSets {
+    getByName("test") {
+        resources.srcDir(rootProject.file("data/src/main/assets/md_snapshot"))
+    }
+}
+
+tasks.test {
+    useJUnit()
+}

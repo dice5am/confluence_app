@@ -30,6 +30,7 @@ Intended remote (when unlocked): `https://github.com/dice5am/confluence_app`
 | `:app` | `ConfluenceApp`, `MainActivity`, NavHost + deep-link stubs |
 | `:core-ui` | Dark-first theme tokens (Color, Type, Spacing) + `ConfluenceTheme` |
 | `:data` | MD-1.1 shaped models + `MarketDataApi` / fixtures (no exchange SDKs) |
+| `:domain-indicators` | Local five-auto calc engine (RSI, volume, MAs, Ichimoku, VP). No UI. |
 | `:feature-home` | Home hub (price / %Δ / freshness / Open chart / Alerts badge) |
 | `:feature-chart` | **Stub only** — “Chart — Phase 2”; no Canvas candle engine |
 | `:feature-alerts` | Stub inbox / placeholder |
@@ -39,6 +40,7 @@ Intended remote (when unlocked): `https://github.com/dice5am/confluence_app`
 ```
 app → feature-* → core-ui
                 ↘ data
+`:domain-indicators` is a JVM calc library (Charts/Alerts may depend later; **not wired** this pass).
 app → core-ui, data
 ```
 
