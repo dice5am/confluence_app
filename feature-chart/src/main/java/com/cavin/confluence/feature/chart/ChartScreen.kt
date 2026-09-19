@@ -9,19 +9,28 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cavin.confluence.core.ui.components.AppButton
 import com.cavin.confluence.core.ui.components.AppButtonStyle
-import com.cavin.confluence.core.ui.components.AppChip
 import com.cavin.confluence.core.ui.components.ConfluenceBrandLockup
 import com.cavin.confluence.core.ui.components.Disclaimer
 import com.cavin.confluence.core.ui.components.GlassCard
@@ -39,12 +48,15 @@ import com.cavin.confluence.core.ui.theme.ConfluenceMono
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
 import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
 import com.cavin.confluence.core.ui.theme.ConfluenceTypography
+import com.cavin.confluence.core.ui.theme.ConfluenceType
 import com.cavin.confluence.core.ui.theme.confluenceScreenGutter
 import com.cavin.confluence.data.fake.FakeFixtures
 import com.cavin.confluence.data.model.Candle
 import com.cavin.confluence.data.model.HealthStatus
 import com.cavin.confluence.data.model.Timeframe
 import com.cavin.confluence.data.snapshot.MdSnapshotStore
+import com.cavin.confluence.indicators.DayOneIndicators
+import com.cavin.confluence.indicators.SnapshotCutoff
 
 internal val DayOneTimeframes = listOf(
     Timeframe.M1, Timeframe.M5, Timeframe.M15,
@@ -75,7 +87,7 @@ fun ChartRoute(
         alertId = alertId?.takeIf { it.isNotBlank() },
         onSelectTf = vm::setTimeframe,
         onCrosshair = vm::onCrosshair,
-        onToggleVolume = vm::toggleVolume,
+        onToggleOverlay = vm::toggleOverlay,
         onRetry = vm::refresh,
     )
 }
@@ -86,7 +98,7 @@ fun ChartScreen(
     alertId: String? = null,
     onSelectTf: (Timeframe) -> Unit = {},
     onCrosshair: (Candle?) -> Unit = {},
-    onToggleVolume: () -> Unit = {},
+    onToggleOverlay: (ChartOverlayFamily) -> Unit = {},
     onRetry: () -> Unit = {},
     viewportSeed: ChartViewportSeed = ChartViewportSeed(),
 ) {
@@ -97,6 +109,15 @@ fun ChartScreen(
     val banner = state.snapshotBanner
         ?: state.health?.note?.takeIf { it.startsWith("Historical snapshot") }
         ?: ChartProofAsOf
+    val overlaySeriesKey = indicatorSeriesKey(state.timeframe.wire, state.candles)
+    val indicators = remember(overlaySeriesKey, state.indicators) {
+        when {
+            state.indicators != null -> state.indicators
+            state.candles.isEmpty() -> null
+            else -> evaluateDayOneIndicators(state.candles, SnapshotCutoff.PACKAGED_2026_09_19)
+        }
+    }
+    val overlays = state.overlays.copy(volume = state.showVolume)
 
     Column(
         modifier = Modifier
@@ -111,18 +132,17 @@ fun ChartScreen(
             ConfluenceBrandLockup(
                 title = "BTC / USDT",
                 subtitle = "Ice + Bright Blue · $tfLabel",
-            ) {
-                AppChip(
-                    label = if (state.showVolume) "Vol on" else "Vol off",
-                    selected = state.showVolume,
-                    onClick = onToggleVolume,
-                )
-            }
+            )
 
             SegmentedControl(
                 options = TfLabels,
                 selectedIndex = selectedIndex,
                 onSelect = { idx -> onSelectTf(DayOneTimeframes[idx]) },
+            )
+
+            OverlayFamilyChipRow(
+                overlays = overlays,
+                onToggle = onToggleOverlay,
             )
 
             Row(
@@ -137,6 +157,8 @@ fun ChartScreen(
                     color = ConfluenceColors.Ice,
                 )
             }
+
+            OverlayHonestyCaption(indicators = indicators, overlays = overlays)
 
             ChartStatusBanner(
                 loading = state.loading,
@@ -175,11 +197,13 @@ fun ChartScreen(
                         }
                     state.candles.isNotEmpty() -> CandleChart(
                         candles = state.candles,
-                        showVolume = state.showVolume,
+                        showVolume = overlays.volume,
                         seriesKey = "${state.venue.wire}:${state.timeframe.wire}",
                         modifier = Modifier.fillMaxSize(),
                         onCrosshairCandle = onCrosshair,
                         viewportSeed = viewportSeed,
+                        indicators = indicators,
+                        overlays = overlays,
                     )
                     else -> Text(
                         "No series for ${state.timeframe.wire}",
@@ -201,6 +225,88 @@ fun ChartScreen(
             Disclaimer(modifier = Modifier.fillMaxWidth())
         }
     }
+}
+
+@Composable
+private fun OverlayFamilyChipRow(
+    overlays: ChartOverlayVisibility,
+    onToggle: (ChartOverlayFamily) -> Unit,
+) {
+    val families = ChartOverlayFamily.entries
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("overlayFamilyChips"),
+        horizontalArrangement = Arrangement.spacedBy(ConfluenceLayout.inlineGap),
+    ) {
+        for (family in families) {
+            OverlayFamilyChip(
+                family = family,
+                selected = overlays.isVisible(family),
+                onClick = { onToggle(family) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun OverlayFamilyChip(
+    family: ChartOverlayFamily,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(ConfluenceDimens.chipRadius)
+    val border = if (selected) ConfluenceColors.Plasma else ConfluenceColors.BorderSubtle
+    val bg = if (selected) {
+        ConfluenceColors.Plasma.copy(alpha = 0.25f)
+    } else {
+        ConfluenceColors.VoidElevated.copy(alpha = 0.55f)
+    }
+    val fg = if (selected) ConfluenceColors.Ice else ConfluenceColors.Muted
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(bg, shape)
+            .border(1.dp, border, shape)
+            .clickable(onClick = onClick)
+            .testTag("overlayChip-${family.chipLabel()}")
+            .padding(horizontal = ConfluenceThemeAccess.spacing.xs, vertical = ConfluenceThemeAccess.spacing.xs),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = family.chipLabel(),
+            style = ConfluenceType.Telemetry,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            color = fg,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun OverlayHonestyCaption(
+    indicators: DayOneIndicators?,
+    overlays: ChartOverlayVisibility,
+) {
+    if (indicators == null) return
+    val parts = buildList {
+        val fence = indicators.fence
+        if (fence.droppedOvershootCount > 0) {
+            add("Fence dropped ${fence.droppedOvershootCount} bars after cutoff")
+        }
+        if (overlays.movingAverages && indicators.sma200WarmupIncomplete) {
+            add("SMA200 undefined (${indicators.bars.size} < 200)")
+        }
+    }
+    if (parts.isEmpty()) return
+    Text(
+        parts.joinToString(" · "),
+        style = ConfluenceMono.Caption,
+        color = ConfluenceColors.Dim,
+    )
 }
 
 @Composable
@@ -243,14 +349,19 @@ internal fun chartProofUiState(
     count: Int = 80,
     showVolume: Boolean = true,
     crosshair: Candle? = null,
+    overlays: ChartOverlayVisibility = ChartOverlayVisibility.AllOn,
 ): ChartUiState {
     val candles = FakeFixtures.sampleClosedCandles(count = count, timeframe = timeframe)
+    val indicators = evaluateDayOneIndicators(candles, SnapshotCutoff.PACKAGED_2026_09_19)
+    val visibility = overlays.copy(volume = showVolume)
     return ChartUiState(
         loading = false,
         candles = candles,
         timeframe = timeframe,
         snapshotBanner = ChartProofAsOf,
         showVolume = showVolume,
+        overlays = visibility,
+        indicators = indicators,
         crosshair = crosshair ?: candles.lastOrNull(),
     )
 }
@@ -315,6 +426,20 @@ internal fun ChartPreviewTfSwitched() {
     ConfluenceTheme {
         PreviewAppShell(selectedId = "chart") {
             ChartScreen(state = state)
+        }
+    }
+}
+
+@Preview(name = "overlays five autos", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390, heightDp = 780)
+@Composable
+internal fun ChartPreviewOverlays() {
+    val state = remember { chartProofUiState(Timeframe.H1, count = 220) }
+    ConfluenceTheme {
+        PreviewAppShell(selectedId = "chart") {
+            ChartScreen(
+                state = state,
+                viewportSeed = ChartViewportSeed(visibleCount = 48),
+            )
         }
     }
 }

@@ -49,6 +49,7 @@ dependencies {
 
     implementation(project(":core-ui"))
     implementation(project(":data"))
+    implementation(project(":domain-indicators"))
 
     implementation(libs.androidx.core.ktx)
 
