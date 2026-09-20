@@ -113,7 +113,10 @@ fun ChartIndicatorsSheet(
             verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap),
         ) {
             for (group in ChartIndicatorGroup.entries) {
-                AppSectionLabel(group.sectionHeader())
+                AppSectionLabel(
+                    group.sectionHeader(),
+                    modifier = Modifier.testTag("indicatorGroup-${group.name}"),
+                )
                 val ids = ChartIndicatorId.entries.filter { it.group() == group }
                 Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
                     for (id in ids) {

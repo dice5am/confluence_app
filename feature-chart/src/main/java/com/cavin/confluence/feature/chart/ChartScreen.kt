@@ -527,14 +527,16 @@ internal fun ChartPreviewOverlays() {
 @Composable
 internal fun ChartPreviewIndicatorsSheet() {
     ConfluenceTheme {
-        ChartIndicatorsSheet(
-            overlays = ChartOverlayVisibility.Defaults,
-            palette = ChartIndicatorPalette.Defaults,
-            params = IndicatorParams.DEFAULT,
-            onToggle = {},
-            onCycleWell = { _, _ -> },
-            onParamsChange = {},
-            onBack = {},
-        )
+        Box(Modifier.fillMaxSize()) {
+            ChartIndicatorsSheet(
+                overlays = ChartOverlayVisibility.Defaults,
+                palette = ChartIndicatorPalette.Defaults,
+                params = IndicatorParams.DEFAULT,
+                onToggle = {},
+                onCycleWell = { _, _ -> },
+                onParamsChange = {},
+                onBack = {},
+            )
+        }
     }
 }

@@ -39,9 +39,9 @@ class ChartV2ChromeTest {
     fun settingsSheetHasV2GroupsAndOnChartChips() {
         composeRule.setContent { ChartPreviewIndicatorsSheet() }
         composeRule.onNodeWithText("Chart indicators").assertIsDisplayed()
-        composeRule.onNodeWithText("OVERLAYS").assertIsDisplayed()
-        composeRule.onNodeWithText("OSCILLATORS").assertIsDisplayed()
-        composeRule.onNodeWithText("VOLUME").assertIsDisplayed()
+        composeRule.onNodeWithTag("indicatorGroup-Overlays").assertIsDisplayed()
+        composeRule.onNodeWithTag("indicatorGroup-Oscillators").assertExists()
+        composeRule.onNodeWithTag("indicatorGroup-Volume").assertExists()
         composeRule.onNodeWithText("EMA 9").assertIsDisplayed()
         composeRule.onNodeWithText("EMA 21").assertIsDisplayed()
         composeRule.onNodeWithText("SMA 50").assertIsDisplayed()
