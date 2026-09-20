@@ -20,7 +20,6 @@ import com.cavin.confluence.data.snapshot.SnapshotMarketDataApi
 import com.cavin.confluence.data.remote.ResilientMarketDataApi
 import com.cavin.confluence.data.series.CandleSeries
 import com.cavin.confluence.indicators.DayOneIndicators
-import com.cavin.confluence.indicators.IndicatorCalc
 import com.cavin.confluence.indicators.SnapshotCutoff
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -42,6 +41,7 @@ data class ChartUiState(
     val crosshair: Candle? = null,
     val showVolume: Boolean = true,
     val overlays: ChartOverlayVisibility = ChartOverlayVisibility(),
+    val overlayPalette: ChartIndicatorPalette = ChartIndicatorPalette.Defaults,
     val indicators: DayOneIndicators? = null,
     val error: String? = null,
     val lastTfSwitchMs: Long? = null,
@@ -62,6 +62,7 @@ class ChartViewModel(
 ) : AndroidViewModel(app) {
 
     private val tfPrefs = ChartTfPreferences(app)
+    private val overlayPrefs = ChartIndicatorPreferences(app)
 
     /** Full series before LOD — live updates mutate tip here, then re-project draw list. */
     private var rawSeries: List<Candle> = emptyList()
@@ -72,7 +73,15 @@ class ChartViewModel(
     private var healthJob: Job? = null
 
     private val _ui = MutableStateFlow(
-        ChartUiState(timeframe = initialTf ?: tfPrefs.getLastUsedOrDefault()),
+        run {
+            val overlays = overlayPrefs.loadVisibility()
+            ChartUiState(
+                timeframe = initialTf ?: tfPrefs.getLastUsedOrDefault(),
+                overlays = overlays,
+                overlayPalette = overlayPrefs.loadPalette(),
+                showVolume = overlays.volume,
+            )
+        },
     )
     val uiState: StateFlow<ChartUiState> = _ui.asStateFlow()
 
@@ -171,14 +180,7 @@ class ChartViewModel(
                 if (nextRaw === rawSeries) return@collect
                 rawSeries = nextRaw
                 val nextIndicators = when {
-                    tick.isFinal -> {
-                        val current = latestIndicators
-                        if (current != null) {
-                            IndicatorCalc.onClosedBar(current, tick.toIndicatorBar())
-                        } else {
-                            evaluateDayOneIndicators(nextRaw, latestCutoff)
-                        }
-                    }
+                    tick.isFinal -> evaluateDayOneIndicators(nextRaw, latestCutoff)
                     else -> latestIndicators
                 }
                 latestIndicators = nextIndicators
@@ -217,16 +219,25 @@ class ChartViewModel(
     }
 
     fun toggleVolume() {
-        toggleOverlay(ChartOverlayFamily.Volume)
+        toggleIndicator(ChartIndicatorId.VolumeRibbon)
     }
 
-    fun toggleOverlay(family: ChartOverlayFamily) {
+    fun toggleIndicator(id: ChartIndicatorId) {
         _ui.update {
-            val next = it.overlays.toggle(family)
+            val next = it.overlays.toggle(id)
+            overlayPrefs.saveVisibility(next)
             it.copy(
                 overlays = next,
                 showVolume = next.volume,
             )
+        }
+    }
+
+    fun cycleIndicatorWell(id: ChartIndicatorId, wellIndex: Int) {
+        _ui.update {
+            val next = it.overlayPalette.cycleWell(id, wellIndex)
+            overlayPrefs.savePalette(next)
+            it.copy(overlayPalette = next)
         }
     }
 

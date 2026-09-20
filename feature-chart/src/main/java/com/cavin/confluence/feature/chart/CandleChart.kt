@@ -74,6 +74,7 @@ fun CandleChart(
     viewportSeed: ChartViewportSeed = ChartViewportSeed(),
     indicators: DayOneIndicators? = null,
     overlays: ChartOverlayVisibility = ChartOverlayVisibility(),
+    palette: ChartIndicatorPalette = ChartIndicatorPalette.Defaults,
 ) {
     if (candles.isEmpty()) return
     val showVolPane = showVolume && overlays.volume
@@ -298,7 +299,7 @@ fun CandleChart(
                     val c = candles[i]
                     val cx = xSlot(i)
                     val bull = c.close >= c.open
-                    val color = (if (bull) chartColors.bull else chartColors.bear)
+                    val color = (if (bull) palette.volumeBull.toColor() else palette.volumeBear.toColor())
                         .copy(alpha = ChartGeometry.volumeAlpha)
                     val h = (c.volume / maxVol).toFloat().coerceIn(0f, 1f) * (panes.volHeight - 2f)
                     drawRect(
@@ -368,6 +369,7 @@ fun CandleChart(
                     candles = candles,
                     indicators = overlay,
                     overlays = overlays,
+                    palette = palette,
                     colors = chartColors,
                     panes = panes,
                     win = win,
@@ -381,6 +383,7 @@ fun CandleChart(
                         candles = candles,
                         indicators = overlay,
                         colors = chartColors,
+                        palette = palette,
                         panes = panes,
                         win = win,
                         stroke = overlayStroke,
@@ -388,6 +391,37 @@ fun CandleChart(
                         xSlot = { xSlot(it) },
                     )
                 }
+            }
+        }
+
+        axisPaint.textAlign = Paint.Align.LEFT
+        axisPaint.color = ConfluenceColors.Muted.toArgb()
+        if (showVolPane && panes.volHeight > 1f) {
+            drawContext.canvas.nativeCanvas.drawText(
+                "VOL",
+                panes.plotLeft + 4f,
+                panes.volTop + axisPaint.textSize + 2f,
+                axisPaint,
+            )
+        }
+        if (showRsiPane && panes.rsiHeight > 1f) {
+            drawContext.canvas.nativeCanvas.drawText(
+                "RSI 14",
+                panes.plotLeft + 4f,
+                panes.rsiTop + axisPaint.textSize + 2f,
+                axisPaint,
+            )
+            val rsiVal = overlay?.rsi14?.lastFinite()
+            if (rsiVal != null) {
+                axisPaint.textAlign = Paint.Align.RIGHT
+                axisPaint.color = ConfluenceColors.Ice.toArgb()
+                drawContext.canvas.nativeCanvas.drawText(
+                    "RSI ${rsiVal.toInt()}",
+                    panes.plotRight - 4f,
+                    panes.rsiTop + axisPaint.textSize + 2f,
+                    axisPaint,
+                )
+                axisPaint.textAlign = Paint.Align.LEFT
             }
         }
 

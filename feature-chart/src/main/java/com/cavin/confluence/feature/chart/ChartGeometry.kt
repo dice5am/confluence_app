@@ -11,10 +11,12 @@ import kotlin.math.min
  *
  * Kept off the draw scope so viewport / snap / pane DoD can be unit-tested.
  *
- * V1 lock: [volumeFraction] is **exactly 18%** of the price+volume plot
- * (volume sits under price; axis gutters are outside this split).
+ * V2 lock (Phase B V2 2026-09-20): price-dominant (~70%) with a thin volume
+ * ribbon (~8%) and one RSI sub-pane (~22%) of the usable plot. Axis gutters
+ * sit outside this split.
  */
 object ChartGeometry {
+    val priceFraction: Float get() = ConfluenceDimens.chartPriceFraction
     val volumeFraction: Float get() = ConfluenceDimens.chartVolumeFraction
     val bodyFraction: Float get() = ConfluenceDimens.chartBodyFraction
     val yPadFraction: Float get() = ConfluenceDimens.chartYPadFraction
@@ -61,9 +63,8 @@ object ChartGeometry {
         val plotBottom = (height - bottomPad).coerceAtLeast(topPad + 1f)
         val usable = (plotBottom - topPad).coerceAtLeast(1f)
         val rsiH = if (showRsi) usable * rsiFraction else 0f
-        val priceVolUsable = (usable - rsiH).coerceAtLeast(1f)
-        val volH = if (showVolume) priceVolUsable * volumeFraction else 0f
-        val priceH = (priceVolUsable - volH).coerceAtLeast(1f)
+        val volH = if (showVolume) usable * volumeFraction else 0f
+        val priceH = (usable - rsiH - volH).coerceAtLeast(1f)
         val priceTop = topPad
         val priceBottom = priceTop + priceH
         val volTop = priceBottom

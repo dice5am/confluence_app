@@ -31,10 +31,13 @@ class ChartOverlayWireTest {
     }
 
     @Test
-    fun evaluateDelegatesToIndicatorCalcNotAParallelSeries() {
+    fun evaluateDelegatesToEvaluateAsOfNotAParallelSeries() {
         val candles = FakeFixtures.sampleClosedCandles(count = 220, timeframe = Timeframe.H1)
         val fromAdapter = evaluateDayOneIndicators(candles, cutoff)
-        val fromEngine = IndicatorCalc.evaluate(candles.map { it.toIndicatorBar() }, cutoff)
+        val bars = candles.map { it.toIndicatorBar() }
+        val lastClose = bars.filter { it.isFinal && it.closeTimeMs <= cutoff.cutoffMs }
+            .maxOf { it.closeTimeMs }
+        val fromEngine = IndicatorCalc.evaluateAsOf(bars, cutoff, lastClose)
         assertEquals(IndicatorCalc.ENGINE_ID, fromAdapter.engineId)
         assertEquals(fromEngine.bars.size, fromAdapter.bars.size)
         assertEquals(fromEngine.rsi14.lastFinite(), fromAdapter.rsi14.lastFinite())
@@ -59,6 +62,8 @@ class ChartOverlayWireTest {
         assertEquals(fromAdapter.bars.size, aligned.size)
         assertEquals(fromAdapter.bars.last().openTimeMs, aligned.last().openTimeMs)
         assertTrue(aligned.all { it.closeTimeMs <= cutoff.cutoffMs })
+        val full = IndicatorCalc.evaluate(bars, cutoff)
+        assertEquals(full.volumeProfile.pointOfControl, fromAdapter.volumeProfile.pointOfControl)
     }
 
     @Test
@@ -110,15 +115,17 @@ class ChartOverlayWireTest {
     }
 
     @Test
-    fun overlayFamiliesToggleIndependently() {
+    fun overlayRowsToggleIndependently() {
         var vis = ChartOverlayVisibility.AllOn
-        vis = vis.toggle(ChartOverlayFamily.Ichimoku)
+        vis = vis.toggle(ChartIndicatorId.Ichimoku)
         assertFalse(vis.ichimoku)
-        assertTrue(vis.movingAverages)
-        vis = vis.toggle(ChartOverlayFamily.Volume)
+        assertTrue(vis.ema9)
+        assertTrue(vis.sma21)
+        vis = vis.toggle(ChartIndicatorId.VolumeRibbon)
         assertFalse(vis.volume)
-        vis = vis.toggle(ChartOverlayFamily.Ichimoku)
+        vis = vis.toggle(ChartIndicatorId.Ichimoku)
         assertTrue(vis.ichimoku)
+        assertEquals(5, vis.activeCount())
     }
 
     @Test

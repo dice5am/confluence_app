@@ -36,8 +36,27 @@ fun resolveSnapshotCutoff(): SnapshotCutoff {
     )
 }
 
-fun evaluateDayOneIndicators(candles: List<Candle>, cutoff: SnapshotCutoff = resolveSnapshotCutoff()): DayOneIndicators =
-    IndicatorCalc.evaluate(candles.map { it.toIndicatorBar() }, cutoff)
+/**
+ * Chart path always binds through [IndicatorCalc.evaluateAsOf] at the last
+ * fenced close (or [cutoff.cutoffMs] when the window is empty). Never uses a
+ * full [IndicatorCalc.evaluate] as a historical Chikou / VP store.
+ */
+fun evaluateDayOneIndicators(
+    candles: List<Candle>,
+    cutoff: SnapshotCutoff = resolveSnapshotCutoff(),
+): DayOneIndicators {
+    val bars = candles.map { it.toIndicatorBar() }
+    val lastClose = bars
+        .filter { it.isFinal && it.closeTimeMs <= cutoff.cutoffMs }
+        .maxOfOrNull { it.closeTimeMs }
+        ?: cutoff.cutoffMs
+    return IndicatorCalc.evaluateAsOf(bars, cutoff, lastClose)
+}
+
+fun chartAsOfOverlays(
+    candles: List<Candle>,
+    cutoff: SnapshotCutoff = resolveSnapshotCutoff(),
+): ChartAsOfOverlays = ChartAsOfOverlays.fromCandles(candles, cutoff)
 
 /**
  * Keep displayed candles aligned to the fenced IndicatorCalc window (same openTimeMs).

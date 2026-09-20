@@ -43,6 +43,12 @@ android {
             isReturnDefaultValues = true
         }
     }
+
+    sourceSets {
+        getByName("test") {
+            resources.srcDir(rootProject.file("data/src/main/assets/md_snapshot"))
+        }
+    }
 }
 
 dependencies {
@@ -57,6 +63,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -66,6 +73,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    testImplementation(libs.org.json)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.androidx.compose.ui.test.manifest)
