@@ -71,9 +71,12 @@ object ConfluenceDimens {
     val chartAxisTick: Dp = 4.dp
     val chartMinTimeLabelGap: Dp = 56.dp
     val chartDefaultVisibleCandles: Int = 48
-    const val chartVolumeFraction = 0.18f // V1 lock: volume pane is exactly 18% of price+volume plot
-    /** Thin RSI sub-pane under volume; taken from total usable so volume stays 18% of price+vol. */
-    const val chartRsiFraction = 0.12f
+    /** V2 overlay-first: price ~70% of usable when ribbon + RSI are both shown. */
+    const val chartPriceFraction = 0.70f
+    /** V2 thin volume ribbon under price (not a fat third pane). */
+    const val chartVolumeFraction = 0.08f
+    /** V2 single oscillator pane under the ribbon. */
+    const val chartRsiFraction = 0.22f
     const val chartOverlayStroke = 1.25f
     const val chartOverlayCloudAlpha = 0.14f
     const val chartVolumeSmaStroke = 1.25f

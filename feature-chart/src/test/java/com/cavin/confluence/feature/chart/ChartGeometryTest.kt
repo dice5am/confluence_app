@@ -7,8 +7,10 @@ import org.junit.Test
 
 class ChartGeometryTest {
     @Test
-    fun volumePaneIsEighteenPercentUnderPrice() {
-        assertEquals(0.18f, ChartGeometry.volumeFraction, 0.0001f)
+    fun v2PriceRibbonAndRsiSplitUsablePlot() {
+        assertEquals(0.70f, ChartGeometry.priceFraction, 0.0001f)
+        assertEquals(0.08f, ChartGeometry.volumeFraction, 0.0001f)
+        assertEquals(0.22f, ChartGeometry.rsiFraction, 0.0001f)
         val panes = ChartGeometry.panes(
             width = 400f,
             height = 1000f,
@@ -17,11 +19,16 @@ class ChartGeometryTest {
             topPad = 8f,
             bottomPad = 22f,
             showVolume = true,
+            showRsi = true,
         )
-        val usable = panes.priceHeight + panes.volHeight
-        assertEquals(0.18f, panes.volHeight / usable, 0.001f)
+        val usable = 1000f - 8f - 22f
+        assertEquals(usable * 0.70f, panes.priceHeight, 0.5f)
+        assertEquals(usable * 0.08f, panes.volHeight, 0.5f)
+        assertEquals(usable * 0.22f, panes.rsiHeight, 0.5f)
         assertEquals(panes.priceBottom, panes.volTop, 0.01f)
-        assertTrue(panes.volTop > panes.priceTop)
+        assertEquals(panes.volBottom, panes.rsiTop, 0.01f)
+        assertEquals(panes.rsiBottom, panes.dataBottom, 0.01f)
+        assertTrue(panes.priceHeight / usable in 0.68f..0.72f)
     }
 
     @Test
@@ -111,8 +118,8 @@ class ChartGeometryTest {
     }
 
     @Test
-    fun rsiPaneSitsUnderVolumeWithoutBreakingEighteenPercent() {
-        assertEquals(0.12f, ChartGeometry.rsiFraction, 0.0001f)
+    fun rsiPaneSitsUnderRibbonAtTwentyTwoPercent() {
+        assertEquals(0.22f, ChartGeometry.rsiFraction, 0.0001f)
         val panes = ChartGeometry.panes(
             width = 400f,
             height = 1000f,
@@ -123,10 +130,8 @@ class ChartGeometryTest {
             showVolume = true,
             showRsi = true,
         )
-        val priceVol = panes.priceHeight + panes.volHeight
-        assertEquals(0.18f, panes.volHeight / priceVol, 0.001f)
         val usable = 1000f - 8f - 22f
-        assertEquals(usable * 0.12f, panes.rsiHeight, 0.5f)
+        assertEquals(usable * 0.22f, panes.rsiHeight, 0.5f)
         assertEquals(panes.priceBottom, panes.volTop, 0.01f)
         assertEquals(panes.volBottom, panes.rsiTop, 0.01f)
         assertEquals(panes.rsiBottom, panes.dataBottom, 0.01f)

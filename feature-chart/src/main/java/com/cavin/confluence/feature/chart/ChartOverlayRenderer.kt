@@ -43,18 +43,16 @@ internal object ChartOverlayRenderer {
                 hi = expanded.second
             }
         }
-        if (overlays.movingAverages) {
-            consider(indicators.ema9)
-            consider(indicators.ema21)
-            consider(indicators.sma50)
-            consider(indicators.sma200)
+        for (i in indicators.movingAverages.indices) {
+            if (overlays.isMaVisible(i)) consider(indicators.movingAverages[i].series)
         }
         if (overlays.ichimoku) {
             consider(indicators.ichimoku.tenkan)
             consider(indicators.ichimoku.kijun)
             consider(indicators.ichimoku.senkouA)
             consider(indicators.ichimoku.senkouB)
-            consider(indicators.ichimoku.chikou)
+            // Chikou is not a causal overlay at plot index i — do not expand
+            // the window from full-series chikou[i] = close[i+26].
         }
         if (overlays.volumeProfile) {
             val vp = indicators.volumeProfile
@@ -99,6 +97,7 @@ internal object ChartOverlayRenderer {
         candles: List<Candle>,
         indicators: DayOneIndicators,
         overlays: ChartOverlayVisibility,
+        palette: ChartIndicatorPalette,
         colors: ChartSafeColors,
         panes: ChartGeometry.Panes,
         win: ChartGeometry.Window,
@@ -113,34 +112,33 @@ internal object ChartOverlayRenderer {
                 drawIchimokuCloud(
                     candles = candles,
                     ichimoku = indicators.ichimoku,
+                    cloud = palette.ichimokuCloud.toColor(),
                     colors = colors,
                     win = win,
                     yPrice = yPrice,
                     xSlot = xSlot,
                 )
                 drawSeries(
-                    candles, indicators.ichimoku.senkouA, colors.ichimokuSpanA, stroke,
+                    candles, indicators.ichimoku.senkouA, palette.ichimokuTenkan.toColor(), stroke,
                     win, yPrice, xSlot, dash,
                 )
                 drawSeries(
-                    candles, indicators.ichimoku.senkouB, colors.ichimokuSpanB, stroke,
+                    candles, indicators.ichimoku.senkouB, palette.ichimokuKijun.toColor(), stroke,
                     win, yPrice, xSlot, dash,
                 )
                 drawSeries(
-                    candles, indicators.ichimoku.tenkan, colors.ichimokuTenkan, stroke,
+                    candles, indicators.ichimoku.tenkan, palette.ichimokuTenkan.toColor(), stroke,
                     win, yPrice, xSlot,
                 )
                 drawSeries(
-                    candles, indicators.ichimoku.kijun, colors.ichimokuKijun, stroke,
+                    candles, indicators.ichimoku.kijun, palette.ichimokuKijun.toColor(), stroke,
                     win, yPrice, xSlot,
                 )
-                drawSeries(
-                    candles, indicators.ichimoku.chikou, colors.ichimokuChikou, stroke,
-                    win, yPrice, xSlot,
-                )
+                // No Chikou stroke: plot-aligned chikou[i]=close[i+26] peeks.
                 drawForwardCloud(
                     candles = candles,
                     ichimoku = indicators.ichimoku,
+                    cloud = palette.ichimokuCloud.toColor(),
                     colors = colors,
                     yPrice = yPrice,
                     xSlot = xSlot,
@@ -148,16 +146,23 @@ internal object ChartOverlayRenderer {
                     candleWidthPx = candleWidthPx,
                 )
             }
-            if (overlays.movingAverages) {
-                drawSeries(candles, indicators.sma200, colors.sma200, stroke, win, yPrice, xSlot)
-                drawSeries(candles, indicators.sma50, colors.sma50, stroke, win, yPrice, xSlot)
-                drawSeries(candles, indicators.ema21, colors.ema21, stroke, win, yPrice, xSlot)
-                drawSeries(candles, indicators.ema9, colors.ema9, stroke, win, yPrice, xSlot)
+            for (i in indicators.movingAverages.indices.reversed()) {
+                if (!overlays.isMaVisible(i)) continue
+                val series = indicators.movingAverages[i].series
+                drawSeries(
+                    candles,
+                    series,
+                    palette.maSwatch(i).toColor(),
+                    stroke,
+                    win,
+                    yPrice,
+                    xSlot,
+                )
             }
             if (overlays.volumeProfile) {
                 drawVolumeProfileLevels(
                     indicators = indicators,
-                    colors = colors,
+                    color = palette.volumeProfile.toColor(),
                     panes = panes,
                     yPrice = yPrice,
                     stroke = stroke,
@@ -198,6 +203,7 @@ internal object ChartOverlayRenderer {
         candles: List<Candle>,
         indicators: DayOneIndicators,
         colors: ChartSafeColors,
+        palette: ChartIndicatorPalette,
         panes: ChartGeometry.Panes,
         win: ChartGeometry.Window,
         stroke: Float,
@@ -217,7 +223,7 @@ internal object ChartOverlayRenderer {
             for (guide in floatArrayOf(30f, 70f)) {
                 val gy = yRsi(guide)
                 drawLine(
-                    color = colors.rsiGuide.copy(alpha = 0.45f),
+                    color = palette.rsiGuide.toColor().copy(alpha = 0.45f),
                     start = Offset(panes.plotLeft, gy),
                     end = Offset(panes.plotRight, gy),
                     strokeWidth = gridStroke,
@@ -226,7 +232,7 @@ internal object ChartOverlayRenderer {
             }
             val mid = yRsi(50f)
             drawLine(
-                color = colors.rsiMid.copy(alpha = 0.45f),
+                color = palette.rsiGuide.toColor().copy(alpha = 0.45f),
                 start = Offset(panes.plotLeft, mid),
                 end = Offset(panes.plotRight, mid),
                 strokeWidth = gridStroke,
@@ -234,7 +240,7 @@ internal object ChartOverlayRenderer {
             drawSeries(
                 candles = candles,
                 series = indicators.rsi14,
-                color = colors.rsi,
+                color = palette.rsi.toColor(),
                 stroke = stroke,
                 win = win,
                 yOf = { yRsi(it) },
@@ -296,6 +302,7 @@ internal object ChartOverlayRenderer {
     private fun DrawScope.drawIchimokuCloud(
         candles: List<Candle>,
         ichimoku: IchimokuResult,
+        cloud: Color,
         colors: ChartSafeColors,
         win: ChartGeometry.Window,
         yPrice: (Float) -> Float,
@@ -321,7 +328,7 @@ internal object ChartOverlayRenderer {
                 idx >= win.startIndex - 1 && prevIdx <= win.endIndex
             ) {
                 val bull = va >= vb
-                val fill = (if (bull) colors.ichimokuCloudBull else colors.ichimokuCloudBear)
+                val fill = (if (bull) cloud else colors.ichimokuCloudBear)
                     .copy(alpha = ConfluenceDimens.chartOverlayCloudAlpha)
                 val path = Path()
                 path.moveTo(xSlot(prevIdx), yPrice(prevA.toFloat()))
@@ -340,6 +347,7 @@ internal object ChartOverlayRenderer {
     private fun DrawScope.drawForwardCloud(
         candles: List<Candle>,
         ichimoku: IchimokuResult,
+        cloud: Color,
         colors: ChartSafeColors,
         yPrice: (Float) -> Float,
         xSlot: (Int) -> Float,
@@ -362,7 +370,7 @@ internal object ChartOverlayRenderer {
                 continue
             }
             val bull = va >= vb
-            val fill = (if (bull) colors.ichimokuCloudBull else colors.ichimokuCloudBear)
+            val fill = (if (bull) cloud else colors.ichimokuCloudBear)
                 .copy(alpha = ConfluenceDimens.chartOverlayCloudAlpha)
             val x0 = xSlot(lastIndex) + prevOffset * candleWidthPx
             val x1 = xSlot(lastIndex) + point.offsetBars * candleWidthPx
@@ -381,14 +389,14 @@ internal object ChartOverlayRenderer {
 
     private fun DrawScope.drawVolumeProfileLevels(
         indicators: DayOneIndicators,
-        colors: ChartSafeColors,
+        color: Color,
         panes: ChartGeometry.Panes,
         yPrice: (Float) -> Float,
         stroke: Float,
         dash: PathEffect,
     ) {
         val vp = indicators.volumeProfile
-        fun level(price: Double?, color: Color, effect: PathEffect?) {
+        fun level(price: Double?, effect: PathEffect?) {
             if (price == null || !price.isFinite()) return
             val y = yPrice(price.toFloat())
             if (y !in panes.priceTop..panes.priceBottom) return
@@ -400,8 +408,8 @@ internal object ChartOverlayRenderer {
                 pathEffect = effect,
             )
         }
-        level(vp.valueAreaHigh, colors.vpVah, dash)
-        level(vp.valueAreaLow, colors.vpVal, dash)
-        level(vp.pointOfControl, colors.vpPoc, null)
+        level(vp.valueAreaHigh, dash)
+        level(vp.valueAreaLow, dash)
+        level(vp.pointOfControl, null)
     }
 }

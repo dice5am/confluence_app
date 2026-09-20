@@ -60,6 +60,20 @@ class ChartCraftScreenshotTest {
     }
 
     @Test
+    fun v2OverlayFirst1h() {
+        snap("v2-chart-overlay-first-1h") {
+            ChartPreviewOverlays()
+        }
+    }
+
+    @Test
+    fun v2ChartIndicatorsSheet() {
+        snap("v2-chart-indicators-settings") {
+            ChartPreviewIndicatorsSheet()
+        }
+    }
+
+    @Test
     fun overlaysMasIchimokuVpRsiVolume() {
         snap("chart-overlays-1h-mas-ichi-vp-rsi-vol") {
             ChartPreviewOverlays()

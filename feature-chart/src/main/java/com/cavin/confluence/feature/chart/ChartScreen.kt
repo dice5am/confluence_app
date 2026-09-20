@@ -1,6 +1,9 @@
 package com.cavin.confluence.feature.chart
 
 import android.app.Application
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,14 +13,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,19 +33,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cavin.confluence.core.ui.components.AppButton
 import com.cavin.confluence.core.ui.components.AppButtonStyle
-import com.cavin.confluence.core.ui.components.ConfluenceBrandLockup
-import com.cavin.confluence.core.ui.components.Disclaimer
 import com.cavin.confluence.core.ui.components.GlassCard
-import com.cavin.confluence.core.ui.components.HudOhlc
-import com.cavin.confluence.core.ui.components.HudStrip
 import com.cavin.confluence.core.ui.components.PlasmaAcrylicBox
 import com.cavin.confluence.core.ui.components.PlasmaSpinner
 import com.cavin.confluence.core.ui.components.PreviewAppShell
-import com.cavin.confluence.core.ui.components.SegmentedControl
 import com.cavin.confluence.core.ui.components.SnapshotBadge
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
 import com.cavin.confluence.core.ui.theme.ConfluenceDimens
@@ -47,8 +50,9 @@ import com.cavin.confluence.core.ui.theme.ConfluenceLayout
 import com.cavin.confluence.core.ui.theme.ConfluenceMono
 import com.cavin.confluence.core.ui.theme.ConfluenceTheme
 import com.cavin.confluence.core.ui.theme.ConfluenceThemeAccess
-import com.cavin.confluence.core.ui.theme.ConfluenceTypography
 import com.cavin.confluence.core.ui.theme.ConfluenceType
+import com.cavin.confluence.core.ui.theme.ConfluenceTypography
+import com.cavin.confluence.core.ui.theme.Spacing
 import com.cavin.confluence.core.ui.theme.confluenceScreenGutter
 import com.cavin.confluence.data.fake.FakeFixtures
 import com.cavin.confluence.data.model.Candle
@@ -56,14 +60,26 @@ import com.cavin.confluence.data.model.HealthStatus
 import com.cavin.confluence.data.model.Timeframe
 import com.cavin.confluence.data.snapshot.MdSnapshotStore
 import com.cavin.confluence.indicators.DayOneIndicators
+import com.cavin.confluence.indicators.IndicatorParams
 import com.cavin.confluence.indicators.SnapshotCutoff
 
-internal val DayOneTimeframes = listOf(
-    Timeframe.M1, Timeframe.M5, Timeframe.M15,
-    Timeframe.H1, Timeframe.H4, Timeframe.D1, Timeframe.W1,
+/** V2 board TF chips (1m / 15m / 1H / 4H / 1D). Extra TFs appear if last-used is 5m/1W. */
+internal val V2Timeframes = listOf(
+    Timeframe.M1, Timeframe.M15, Timeframe.H1, Timeframe.H4, Timeframe.D1,
 )
 
-internal val TfLabels = listOf("1m", "5m", "15m", "1h", "4h", "1D", "1W")
+internal fun v2TfLabel(tf: Timeframe): String = when (tf) {
+    Timeframe.M1 -> "1m"
+    Timeframe.M5 -> "5m"
+    Timeframe.M15 -> "15m"
+    Timeframe.H1 -> "1H"
+    Timeframe.H4 -> "4H"
+    Timeframe.D1 -> "1D"
+    Timeframe.W1 -> "1W"
+}
+
+internal fun visibleChartTimeframes(current: Timeframe): List<Timeframe> =
+    if (current in V2Timeframes) V2Timeframes else V2Timeframes + current
 
 /** Screenshot chrome as-of — packaged meta.json cutoff (fallback when assets aren't loaded). */
 internal val ChartProofAsOf: String
@@ -81,15 +97,37 @@ fun ChartRoute(
     }
     val vm: ChartViewModel = viewModel(factory = ChartViewModel.factory(app, navTf))
     val state by vm.uiState.collectAsStateWithLifecycle()
+    var settingsOpen by remember { mutableStateOf(false) }
 
-    ChartScreen(
-        state = state,
-        alertId = alertId?.takeIf { it.isNotBlank() },
-        onSelectTf = vm::setTimeframe,
-        onCrosshair = vm::onCrosshair,
-        onToggleOverlay = vm::toggleOverlay,
-        onRetry = vm::refresh,
-    )
+    Box(Modifier.fillMaxSize()) {
+        ChartScreen(
+            state = state,
+            alertId = alertId?.takeIf { it.isNotBlank() },
+            onSelectTf = vm::setTimeframe,
+            onCrosshair = vm::onCrosshair,
+            onOpenSettings = { settingsOpen = true },
+            onRetry = vm::refresh,
+        )
+        if (settingsOpen) {
+            Dialog(
+                onDismissRequest = { settingsOpen = false },
+                properties = DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false,
+                ),
+            ) {
+                ChartIndicatorsSheet(
+                    overlays = state.overlays,
+                    palette = state.overlayPalette,
+                    params = state.params,
+                    onToggle = vm::toggleIndicator,
+                    onCycleWell = vm::cycleIndicatorWell,
+                    onParamsChange = vm::updateParams,
+                    onBack = { settingsOpen = false },
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -98,26 +136,34 @@ fun ChartScreen(
     alertId: String? = null,
     onSelectTf: (Timeframe) -> Unit = {},
     onCrosshair: (Candle?) -> Unit = {},
-    onToggleOverlay: (ChartOverlayFamily) -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     onRetry: () -> Unit = {},
     viewportSeed: ChartViewportSeed = ChartViewportSeed(),
 ) {
     val spacing = ConfluenceThemeAccess.spacing
-    val selectedIndex = DayOneTimeframes.indexOf(state.timeframe).coerceAtLeast(0)
+    val tfs = visibleChartTimeframes(state.timeframe)
     val candle = state.crosshair ?: state.candles.lastOrNull()
-    val tfLabel = TfLabels.getOrElse(selectedIndex) { state.timeframe.wire }
-    val banner = state.snapshotBanner
-        ?: state.health?.note?.takeIf { it.startsWith("Historical snapshot") }
-        ?: ChartProofAsOf
-    val overlaySeriesKey = indicatorSeriesKey(state.timeframe.wire, state.candles)
+    val lastPrice = candle?.close
+    val asOfCaption = ChartHonesty.asOfCaption(
+        state.snapshotBanner
+            ?.substringAfterLast(" · ")
+            ?.takeIf { it.contains("UTC") }
+            ?: ChartHonesty.packagedUtcLabel,
+    )
+    val overlaySeriesKey = indicatorSeriesKey(state.timeframe.wire, state.candles, state.params)
     val indicators = remember(overlaySeriesKey, state.indicators) {
         when {
             state.indicators != null -> state.indicators
             state.candles.isEmpty() -> null
-            else -> evaluateDayOneIndicators(state.candles, SnapshotCutoff.PACKAGED_2026_09_19)
+            else -> evaluateDayOneIndicators(
+                state.candles,
+                SnapshotCutoff.PACKAGED_2026_09_19,
+                state.params,
+            )
         }
     }
     val overlays = state.overlays.copy(volume = state.showVolume)
+    val palette = state.overlayPalette
 
     Column(
         modifier = Modifier
@@ -126,54 +172,94 @@ fun ChartScreen(
                 top = ConfluenceLayout.screenTop,
                 bottom = ConfluenceLayout.screenBottom,
             ),
-        verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.stackGap),
+        verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
-            ConfluenceBrandLockup(
-                title = "BTC / USDT",
-                subtitle = "Ice + Bright Blue · $tfLabel",
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = ChartHonesty.PAIR,
+                style = ConfluenceTypography.titleLarge,
+                color = ConfluenceColors.Text,
+                modifier = Modifier.testTag("chartPair"),
             )
-
-            SegmentedControl(
-                options = TfLabels,
-                selectedIndex = selectedIndex,
-                onSelect = { idx -> onSelectTf(DayOneTimeframes[idx]) },
+            Spacer(Modifier.padding(start = Spacing.sm))
+            Text(
+                text = lastPrice?.let { ChartHonesty.formatLastPrice(it) } ?: "—",
+                style = ConfluenceMono.Hud,
+                color = ConfluenceColors.Neg.takeIf {
+                    candle != null && candle.close < candle.open
+                } ?: ConfluenceColors.Pos,
+                modifier = Modifier.testTag("chartLastPrice"),
             )
-
-            OverlayFamilyChipRow(
-                overlays = overlays,
-                onToggle = onToggleOverlay,
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(ConfluenceLayout.inlineGap),
-            ) {
-                SnapshotBadge(label = "Snapshot", pulse = false)
-                Text(
-                    banner,
-                    style = ConfluenceMono.Caption,
-                    color = ConfluenceColors.Ice,
-                )
-            }
-
-            OverlayHonestyCaption(indicators = indicators, overlays = overlays)
-
-            ChartStatusBanner(
-                loading = state.loading,
-                error = state.error,
-                health = state.health?.status,
-                healthNote = state.health?.note?.takeUnless { it.startsWith("Historical snapshot") },
-                empty = !state.loading && state.error == null && state.candles.isEmpty(),
-                onRetry = onRetry,
+            Spacer(Modifier.weight(1f))
+            SnapshotBadge(
+                label = ChartHonesty.SNAPSHOT_BADGE,
+                pulse = false,
+                modifier = Modifier.testTag("snapshotBadge"),
             )
         }
 
-        HudStrip(
-            ohlc = candle?.let {
-                HudOhlc(open = it.open, high = it.high, low = it.low, close = it.close)
-            },
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                for (tf in tfs) {
+                    TfChip(
+                        label = v2TfLabel(tf),
+                        selected = tf == state.timeframe,
+                        onClick = { onSelectTf(tf) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            IconButton(
+                onClick = onOpenSettings,
+                modifier = Modifier.testTag("chartSettingsGear"),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Settings,
+                    contentDescription = "Chart indicators",
+                    tint = ConfluenceColors.Ice,
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                asOfCaption,
+                style = ConfluenceMono.Caption,
+                color = ConfluenceColors.Ice,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("chartHonestyAsOf"),
+            )
+            Text(
+                ChartHonesty.MODE_CAPTION,
+                style = ConfluenceMono.Caption,
+                color = ConfluenceColors.Muted,
+                modifier = Modifier.testTag("chartHonestyMode"),
+            )
+        }
+
+        OverlayHonestyCaption(indicators = indicators, overlays = overlays)
+
+        ChartStatusBanner(
+            loading = state.loading,
+            error = state.error,
+            health = state.health?.status,
+            healthNote = state.health?.note?.takeUnless { it.startsWith("Historical snapshot") },
+            empty = !state.loading && state.error == null && state.candles.isEmpty(),
+            onRetry = onRetry,
         )
 
         PlasmaAcrylicBox(
@@ -195,16 +281,27 @@ fun ChartScreen(
                             Spacer(Modifier.height(spacing.sm))
                             Text("Loading candles…", color = ConfluenceColors.Dim)
                         }
-                    state.candles.isNotEmpty() -> CandleChart(
-                        candles = state.candles,
-                        showVolume = overlays.volume,
-                        seriesKey = "${state.venue.wire}:${state.timeframe.wire}",
-                        modifier = Modifier.fillMaxSize(),
-                        onCrosshairCandle = onCrosshair,
-                        viewportSeed = viewportSeed,
-                        indicators = indicators,
-                        overlays = overlays,
-                    )
+                    state.candles.isNotEmpty() -> {
+                        CandleChart(
+                            candles = state.candles,
+                            showVolume = overlays.volume,
+                            seriesKey = "${state.venue.wire}:${state.timeframe.wire}",
+                            modifier = Modifier.fillMaxSize(),
+                            onCrosshairCandle = onCrosshair,
+                            viewportSeed = viewportSeed,
+                            indicators = indicators,
+                            overlays = overlays,
+                            palette = palette,
+                        )
+                        OverlayLegendRow(
+                            overlays = overlays,
+                            palette = palette,
+                            params = state.params,
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(start = Spacing.xs, top = Spacing.xs),
+                        )
+                    }
                     else -> Text(
                         "No series for ${state.timeframe.wire}",
                         modifier = Modifier.align(Alignment.Center),
@@ -214,50 +311,24 @@ fun ChartScreen(
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(ConfluenceLayout.chromeGap)) {
-            if (!alertId.isNullOrBlank()) {
-                Text(
-                    "Opened from alert · $alertId",
-                    style = ConfluenceTypography.labelSmall,
-                    color = ConfluenceColors.Dim,
-                )
-            }
-            Disclaimer(modifier = Modifier.fillMaxWidth())
-        }
-    }
-}
-
-@Composable
-private fun OverlayFamilyChipRow(
-    overlays: ChartOverlayVisibility,
-    onToggle: (ChartOverlayFamily) -> Unit,
-) {
-    val families = ChartOverlayFamily.entries
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("overlayFamilyChips"),
-        horizontalArrangement = Arrangement.spacedBy(ConfluenceLayout.inlineGap),
-    ) {
-        for (family in families) {
-            OverlayFamilyChip(
-                family = family,
-                selected = overlays.isVisible(family),
-                onClick = { onToggle(family) },
-                modifier = Modifier.weight(1f),
+        if (!alertId.isNullOrBlank()) {
+            Text(
+                "Opened from alert · $alertId",
+                style = ConfluenceTypography.labelSmall,
+                color = ConfluenceColors.Dim,
             )
         }
     }
 }
 
 @Composable
-private fun OverlayFamilyChip(
-    family: ChartOverlayFamily,
+private fun TfChip(
+    label: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(ConfluenceDimens.chipRadius)
+    val shape = RoundedCornerShape(10.dp)
     val border = if (selected) ConfluenceColors.Plasma else ConfluenceColors.BorderSubtle
     val bg = if (selected) {
         ConfluenceColors.Plasma.copy(alpha = 0.25f)
@@ -271,12 +342,12 @@ private fun OverlayFamilyChip(
             .background(bg, shape)
             .border(1.dp, border, shape)
             .clickable(onClick = onClick)
-            .testTag("overlayChip-${family.chipLabel()}")
-            .padding(horizontal = ConfluenceThemeAccess.spacing.xs, vertical = ConfluenceThemeAccess.spacing.xs),
+            .testTag("tfChip-$label")
+            .padding(vertical = Spacing.sm),
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = family.chipLabel(),
+            text = label,
             style = ConfluenceType.Telemetry,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
             color = fg,
@@ -297,7 +368,10 @@ private fun OverlayHonestyCaption(
         if (fence.droppedOvershootCount > 0) {
             add("Fence dropped ${fence.droppedOvershootCount} bars after cutoff")
         }
-        if (overlays.movingAverages && indicators.sma200WarmupIncomplete) {
+        if ((overlays.ma0 || overlays.ma1 || overlays.ma2 || overlays.ma3) &&
+            indicators.sma200WarmupIncomplete &&
+            indicators.params.movingAverages.any { it.period >= 200 }
+        ) {
             add("SMA200 undefined (${indicators.bars.size} < 200)")
         }
     }
@@ -306,6 +380,7 @@ private fun OverlayHonestyCaption(
         parts.joinToString(" · "),
         style = ConfluenceMono.Caption,
         color = ConfluenceColors.Dim,
+        modifier = Modifier.testTag("chartFenceCaption"),
     )
 }
 
@@ -349,10 +424,12 @@ internal fun chartProofUiState(
     count: Int = 80,
     showVolume: Boolean = true,
     crosshair: Candle? = null,
-    overlays: ChartOverlayVisibility = ChartOverlayVisibility.AllOn,
+    overlays: ChartOverlayVisibility = ChartOverlayVisibility.Defaults,
+    palette: ChartIndicatorPalette = ChartIndicatorPalette.Defaults,
+    params: IndicatorParams = IndicatorParams.DEFAULT,
 ): ChartUiState {
     val candles = FakeFixtures.sampleClosedCandles(count = count, timeframe = timeframe)
-    val indicators = evaluateDayOneIndicators(candles, SnapshotCutoff.PACKAGED_2026_09_19)
+    val indicators = evaluateDayOneIndicators(candles, SnapshotCutoff.PACKAGED_2026_09_19, params)
     val visibility = overlays.copy(volume = showVolume)
     return ChartUiState(
         loading = false,
@@ -361,6 +438,8 @@ internal fun chartProofUiState(
         snapshotBanner = ChartProofAsOf,
         showVolume = showVolume,
         overlays = visibility,
+        overlayPalette = palette,
+        params = params,
         indicators = indicators,
         crosshair = crosshair ?: candles.lastOrNull(),
     )
@@ -430,7 +509,7 @@ internal fun ChartPreviewTfSwitched() {
     }
 }
 
-@Preview(name = "overlays five autos", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390, heightDp = 780)
+@Preview(name = "V2 overlay-first 1H", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390, heightDp = 780)
 @Composable
 internal fun ChartPreviewOverlays() {
     val state = remember { chartProofUiState(Timeframe.H1, count = 220) }
@@ -439,6 +518,24 @@ internal fun ChartPreviewOverlays() {
             ChartScreen(
                 state = state,
                 viewportSeed = ChartViewportSeed(visibleCount = 48),
+            )
+        }
+    }
+}
+
+@Preview(name = "V2 settings", showBackground = true, backgroundColor = 0xFF060B14, widthDp = 390, heightDp = 780)
+@Composable
+internal fun ChartPreviewIndicatorsSheet() {
+    ConfluenceTheme {
+        Box(Modifier.fillMaxSize()) {
+            ChartIndicatorsSheet(
+                overlays = ChartOverlayVisibility.Defaults,
+                palette = ChartIndicatorPalette.Defaults,
+                params = IndicatorParams.DEFAULT,
+                onToggle = {},
+                onCycleWell = { _, _ -> },
+                onParamsChange = {},
+                onBack = {},
             )
         }
     }
