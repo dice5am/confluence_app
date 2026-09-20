@@ -10,6 +10,7 @@ Phase 1 **contracts only** (BUILD greenlight). No eval/push/score runtime.
 | ALT-1.8-md-health-gate.md | ALT-1.8 |
 | ALT-golden-vectors-needed.md | golden vector list |
 | ALT-APPLY-calc-engine.md | APPLY ENTRY — local five-auto calc engine |
+| ALT-PHASE-A-calc-honesty.md | Phase A — no look-ahead / prefix property |
 
 Hard rules: no trade execution; no keys on device; no venue merge; no P2–P4 score/push runtime in this phase.
 

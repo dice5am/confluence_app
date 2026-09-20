@@ -2,6 +2,7 @@ package com.cavin.confluence.indicators
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
+import kotlin.math.abs
 
 class VolumeProfileTest {
     @Test
@@ -28,6 +29,29 @@ class VolumeProfileTest {
         assertThat(vp.pointOfControl!!).isWithin(2.0).of(100.0)
         assertThat(vp.notes).contains("last 24 closed bars")
         assertThat(vp.notes).doesNotContain("manual")
+    }
+
+    @Test
+    fun computeAsOfIgnoresBarsAfterAsOfClose() {
+        val bars = (0 until 30).map { i ->
+            TestBars.bar(
+                openTimeMs = 1_000_000L + i * 3_600_000L,
+                open = 100.0,
+                high = if (i > 20) 10_000.0 else 110.0,
+                low = 90.0,
+                close = 100.0,
+                volume = if (i > 20) 1_000.0 else 1.0,
+            )
+        }
+        val asOf = bars[20].closeTimeMs
+        val honest = VolumeProfile.computeAsOf(bars, asOf)
+        val prefix = VolumeProfile.compute(bars.take(21))
+        assertThat(honest.windowLastCloseTimeMs).isEqualTo(asOf)
+        assertThat(honest.usedBarCount).isEqualTo(21)
+        assertThat(honest.pointOfControl).isWithin(1e-9).of(prefix.pointOfControl!!)
+        val peeked = VolumeProfile.compute(bars)
+        assertThat(peeked.windowLastCloseTimeMs).isEqualTo(bars.last().closeTimeMs)
+        assertThat(abs(peeked.pointOfControl!! - honest.pointOfControl!!)).isGreaterThan(1.0)
     }
 
     @Test

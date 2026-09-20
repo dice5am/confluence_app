@@ -41,6 +41,8 @@ class IchimokuTest {
         val rawA = (tenkanLast + kijunLast) / 2.0
         assertThat(result.forwardCloud).hasSize(Ichimoku.DISPLACEMENT)
         assertThat(result.forwardCloud.last().senkouA).isWithin(1e-9).of(rawA)
+        assertThat(result.senkouARaw.values[last]).isWithin(1e-9).of(rawA)
+        assertThat(result.senkouA.values[last]).isWithin(1e-9).of(result.senkouARaw.values[last - Ichimoku.DISPLACEMENT]!!)
         assertThat(result.chikou.values[last - Ichimoku.DISPLACEMENT]).isWithin(1e-9).of(bars.last().close)
         assertThat(result.chikou.values[last]).isNull()
     }
