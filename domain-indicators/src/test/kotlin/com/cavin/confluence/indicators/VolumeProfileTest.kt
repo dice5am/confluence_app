@@ -71,4 +71,26 @@ class VolumeProfileTest {
         assertThat(vp.lookbackLimited).isTrue()
         assertThat(vp.pointOfControl!!).isFinite()
     }
+
+    @Test
+    fun customLookbackUsesLastNClosedBars() {
+        val bars = (0 until 24).map { i ->
+            TestBars.bar(
+                openTimeMs = 1_000_000L + i * 3_600_000L,
+                open = 100.0,
+                high = 110.0,
+                low = 90.0,
+                close = 100.0,
+                volume = if (i >= 14) 100.0 else 1.0,
+            )
+        }
+        val last10 = VolumeProfile.compute(bars, lookbackBars = 10)
+        assertThat(last10.lookbackBarsRequested).isEqualTo(10)
+        assertThat(last10.usedBarCount).isEqualTo(10)
+        assertThat(last10.windowFirstOpenTimeMs).isEqualTo(bars[14].openTimeMs)
+        val asOf = VolumeProfile.computeAsOf(bars, bars[20].closeTimeMs, lookbackBars = 10)
+        assertThat(asOf.usedBarCount).isEqualTo(10)
+        assertThat(asOf.windowLastCloseTimeMs).isEqualTo(bars[20].closeTimeMs)
+        assertThat(asOf.windowFirstOpenTimeMs).isEqualTo(bars[11].openTimeMs)
+    }
 }
