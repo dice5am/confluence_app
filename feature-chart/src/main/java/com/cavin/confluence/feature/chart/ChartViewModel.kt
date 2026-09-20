@@ -20,6 +20,7 @@ import com.cavin.confluence.data.snapshot.SnapshotMarketDataApi
 import com.cavin.confluence.data.remote.ResilientMarketDataApi
 import com.cavin.confluence.data.series.CandleSeries
 import com.cavin.confluence.indicators.DayOneIndicators
+import com.cavin.confluence.indicators.IndicatorParams
 import com.cavin.confluence.indicators.SnapshotCutoff
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -42,6 +43,7 @@ data class ChartUiState(
     val showVolume: Boolean = true,
     val overlays: ChartOverlayVisibility = ChartOverlayVisibility(),
     val overlayPalette: ChartIndicatorPalette = ChartIndicatorPalette.Defaults,
+    val params: IndicatorParams = IndicatorParams.DEFAULT,
     val indicators: DayOneIndicators? = null,
     val error: String? = null,
     val lastTfSwitchMs: Long? = null,
@@ -79,6 +81,7 @@ class ChartViewModel(
                 timeframe = initialTf ?: tfPrefs.getLastUsedOrDefault(),
                 overlays = overlays,
                 overlayPalette = overlayPrefs.loadPalette(),
+                params = overlayPrefs.loadParams(),
                 showVolume = overlays.volume,
             )
         },
@@ -117,7 +120,8 @@ class ChartViewModel(
                 val raw = api.getHistory(venue = Venue.BINANCE, timeframe = tf)
                 val health = api.getHealth(Venue.BINANCE)
                 val cutoff = resolveSnapshotCutoff()
-                val indicators = evaluateDayOneIndicators(raw, cutoff)
+                val params = _ui.value.params
+                val indicators = evaluateDayOneIndicators(raw, cutoff, params)
                 val fenced = candlesAlignedToIndicators(raw, indicators)
                 val drawn = CandleLod.maybeDecimate(fenced, tf)
                 ChartPerf.logSeriesStats(tf, fenced.size, drawn.size)
@@ -180,7 +184,7 @@ class ChartViewModel(
                 if (nextRaw === rawSeries) return@collect
                 rawSeries = nextRaw
                 val nextIndicators = when {
-                    tick.isFinal -> evaluateDayOneIndicators(nextRaw, latestCutoff)
+                    tick.isFinal -> evaluateDayOneIndicators(nextRaw, latestCutoff, _ui.value.params)
                     else -> latestIndicators
                 }
                 latestIndicators = nextIndicators
@@ -238,6 +242,33 @@ class ChartViewModel(
             val next = it.overlayPalette.cycleWell(id, wellIndex)
             overlayPrefs.savePalette(next)
             it.copy(overlayPalette = next)
+        }
+    }
+
+    fun updateParams(next: IndicatorParams) {
+        overlayPrefs.saveParams(next)
+        _ui.update { it.copy(params = next) }
+        viewModelScope.launch { recomputeFromRaw() }
+    }
+
+    private suspend fun recomputeFromRaw() {
+        val raw = rawSeries
+        if (raw.isEmpty()) return
+        val cutoff = latestCutoff
+        val params = _ui.value.params
+        val tf = _ui.value.timeframe
+        val indicators = withContext(Dispatchers.Default) {
+            evaluateDayOneIndicators(raw, cutoff, params)
+        }
+        latestIndicators = indicators
+        val fenced = candlesAlignedToIndicators(raw, indicators)
+        val drawn = CandleLod.maybeDecimate(fenced, tf)
+        _ui.update {
+            it.copy(
+                candles = drawn,
+                rawCandleCount = fenced.size,
+                indicators = indicators,
+            )
         }
     }
 

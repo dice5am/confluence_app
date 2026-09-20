@@ -43,11 +43,16 @@ class ChartV2ChromeTest {
         composeRule.onNodeWithText("OSCILLATORS").assertIsDisplayed()
         composeRule.onNodeWithText("VOLUME").assertIsDisplayed()
         composeRule.onNodeWithText("EMA 9").assertIsDisplayed()
-        composeRule.onNodeWithText("SMA 21").assertIsDisplayed()
+        composeRule.onNodeWithText("EMA 21").assertIsDisplayed()
+        composeRule.onNodeWithText("SMA 50").assertIsDisplayed()
+        composeRule.onNodeWithText("SMA 200").assertIsDisplayed()
         composeRule.onNodeWithText("Ichimoku Cloud").assertIsDisplayed()
         composeRule.onNodeWithText("Volume Profile").assertIsDisplayed()
         composeRule.onNodeWithText("RSI 14").assertIsDisplayed()
         composeRule.onNodeWithText("Volume (ribbon)").assertIsDisplayed()
+        composeRule.onNodeWithText("Type").assertIsDisplayed()
+        composeRule.onNodeWithText("Length").assertIsDisplayed()
+        composeRule.onNodeWithText("Lookback").assertIsDisplayed()
         composeRule.onNodeWithTag("chartIndicatorsActiveCount").assertTextContains("6 active")
     }
 }

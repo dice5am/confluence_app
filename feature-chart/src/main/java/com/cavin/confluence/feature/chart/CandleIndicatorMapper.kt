@@ -5,6 +5,7 @@ import com.cavin.confluence.data.snapshot.MdSnapshotStore
 import com.cavin.confluence.indicators.DayOneIndicators
 import com.cavin.confluence.indicators.IndicatorBar
 import com.cavin.confluence.indicators.IndicatorCalc
+import com.cavin.confluence.indicators.IndicatorParams
 import com.cavin.confluence.indicators.SnapshotCutoff
 
 /**
@@ -38,25 +39,28 @@ fun resolveSnapshotCutoff(): SnapshotCutoff {
 
 /**
  * Chart path always binds through [IndicatorCalc.evaluateAsOf] at the last
- * fenced close (or [cutoff.cutoffMs] when the window is empty). Never uses a
- * full [IndicatorCalc.evaluate] as a historical Chikou / VP store.
+ * fenced close (or [cutoff.cutoffMs] when the window is empty), with
+ * [IndicatorParams] (defaults ≡ five-auto). Never uses a full
+ * [IndicatorCalc.evaluate] as a historical Chikou / VP store.
  */
 fun evaluateDayOneIndicators(
     candles: List<Candle>,
     cutoff: SnapshotCutoff = resolveSnapshotCutoff(),
+    params: IndicatorParams = IndicatorParams.DEFAULT,
 ): DayOneIndicators {
     val bars = candles.map { it.toIndicatorBar() }
     val lastClose = bars
         .filter { it.isFinal && it.closeTimeMs <= cutoff.cutoffMs }
         .maxOfOrNull { it.closeTimeMs }
         ?: cutoff.cutoffMs
-    return IndicatorCalc.evaluateAsOf(bars, cutoff, lastClose)
+    return IndicatorCalc.evaluateAsOf(bars, cutoff, lastClose, params)
 }
 
 fun chartAsOfOverlays(
     candles: List<Candle>,
     cutoff: SnapshotCutoff = resolveSnapshotCutoff(),
-): ChartAsOfOverlays = ChartAsOfOverlays.fromCandles(candles, cutoff)
+    params: IndicatorParams = IndicatorParams.DEFAULT,
+): ChartAsOfOverlays = ChartAsOfOverlays.fromCandles(candles, cutoff, params)
 
 /**
  * Keep displayed candles aligned to the fenced IndicatorCalc window (same openTimeMs).
@@ -85,8 +89,12 @@ fun candlesAlignedToIndicators(raw: List<Candle>, indicators: DayOneIndicators):
     return aligned
 }
 
-internal fun indicatorSeriesKey(timeframeWire: String, candles: List<Candle>): String {
+internal fun indicatorSeriesKey(
+    timeframeWire: String,
+    candles: List<Candle>,
+    params: IndicatorParams = IndicatorParams.DEFAULT,
+): String {
     val first = candles.firstOrNull()?.openTimeMs ?: 0L
     val last = candles.lastOrNull()?.closeTimeMs ?: 0L
-    return "$timeframeWire:$first:$last:${candles.size}"
+    return "$timeframeWire:$first:$last:${candles.size}:${params.rsiPeriod}:${params.volumeSmaPeriod}:${params.volumeProfileLookback}:${params.ichimoku.tenkanPeriod}:${params.ichimoku.kijunPeriod}:${params.ichimoku.senkouBPeriod}:${params.movingAverages.joinToString { it.key }}"
 }

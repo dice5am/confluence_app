@@ -2,14 +2,20 @@ package com.cavin.confluence.feature.chart
 
 import androidx.compose.ui.graphics.Color
 import com.cavin.confluence.core.ui.theme.ConfluenceColors
+import com.cavin.confluence.indicators.IndicatorParams
+import com.cavin.confluence.indicators.IchimokuParams
+import com.cavin.confluence.indicators.MaSpec
+import com.cavin.confluence.indicators.MaType
 
 /**
- * V2 settings rows (Phase B V2 2026-09-20). SMA 21 is the board label for the
- * engine's EMA-21 overlay — five-autos lock, no SMA-21 formula in UI.
+ * V2 settings rows (Phase B V2 2026-09-20). Four MA slots bind to
+ * [IndicatorParams.movingAverages] (defaults EMA 9/21, SMA 50/200).
  */
 enum class ChartIndicatorId {
-    Ema9,
-    Sma21,
+    Ma0,
+    Ma1,
+    Ma2,
+    Ma3,
     Ichimoku,
     VolumeProfile,
     Rsi14,
@@ -23,8 +29,10 @@ enum class ChartIndicatorGroup {
 }
 
 fun ChartIndicatorId.group(): ChartIndicatorGroup = when (this) {
-    ChartIndicatorId.Ema9,
-    ChartIndicatorId.Sma21,
+    ChartIndicatorId.Ma0,
+    ChartIndicatorId.Ma1,
+    ChartIndicatorId.Ma2,
+    ChartIndicatorId.Ma3,
     ChartIndicatorId.Ichimoku,
     ChartIndicatorId.VolumeProfile,
     -> ChartIndicatorGroup.Overlays
@@ -32,34 +40,31 @@ fun ChartIndicatorId.group(): ChartIndicatorGroup = when (this) {
     ChartIndicatorId.VolumeRibbon -> ChartIndicatorGroup.Volume
 }
 
-fun ChartIndicatorId.settingsTitle(): String = when (this) {
-    ChartIndicatorId.Ema9 -> "EMA 9"
-    ChartIndicatorId.Sma21 -> "SMA 21"
+fun ChartIndicatorId.maIndex(): Int? = when (this) {
+    ChartIndicatorId.Ma0 -> 0
+    ChartIndicatorId.Ma1 -> 1
+    ChartIndicatorId.Ma2 -> 2
+    ChartIndicatorId.Ma3 -> 3
+    ChartIndicatorId.Ichimoku,
+    ChartIndicatorId.VolumeProfile,
+    ChartIndicatorId.Rsi14,
+    ChartIndicatorId.VolumeRibbon,
+    -> null
+}
+
+fun ChartIndicatorId.settingsTitle(params: IndicatorParams): String = when (this) {
+    ChartIndicatorId.Ma0,
+    ChartIndicatorId.Ma1,
+    ChartIndicatorId.Ma2,
+    ChartIndicatorId.Ma3,
+    -> params.movingAverages.getOrNull(maIndex()!!)?.label() ?: "MA"
     ChartIndicatorId.Ichimoku -> "Ichimoku Cloud"
     ChartIndicatorId.VolumeProfile -> "Volume Profile"
-    ChartIndicatorId.Rsi14 -> "RSI 14"
+    ChartIndicatorId.Rsi14 -> "RSI ${params.rsiPeriod}"
     ChartIndicatorId.VolumeRibbon -> "Volume (ribbon)"
 }
 
-fun ChartIndicatorId.legendLabel(): String? = when (this) {
-    ChartIndicatorId.Ema9 -> "EMA 9"
-    ChartIndicatorId.Sma21 -> "SMA 21"
-    ChartIndicatorId.Ichimoku -> "Ichimoku"
-    ChartIndicatorId.VolumeProfile -> "VP"
-    ChartIndicatorId.Rsi14 -> null
-    ChartIndicatorId.VolumeRibbon -> null
-}
-
-fun ChartIndicatorId.wellCount(): Int = when (this) {
-    ChartIndicatorId.Ema9,
-    ChartIndicatorId.Sma21,
-    ChartIndicatorId.VolumeProfile,
-    -> 1
-    ChartIndicatorId.Rsi14,
-    ChartIndicatorId.VolumeRibbon,
-    -> 2
-    ChartIndicatorId.Ichimoku -> 3
-}
+fun MaSpec.label(): String = "${type.name} $period"
 
 fun ChartIndicatorGroup.sectionHeader(): String = when (this) {
     ChartIndicatorGroup.Overlays -> "OVERLAYS"
@@ -68,29 +73,43 @@ fun ChartIndicatorGroup.sectionHeader(): String = when (this) {
 }
 
 /**
- * Per-indicator show/hide. Five autos only (EMA9 + EMA21-as-SMA21, Ichimoku,
- * VP, RSI, volume ribbon). SMA 50/200 stay on the calc result, not V2 chrome.
+ * Per-indicator show/hide. MA slots 0–1 default on (V2 overlay-first density);
+ * 50/200 stay in [IndicatorParams] and can be turned on in settings.
  */
 data class ChartOverlayVisibility(
-    val ema9: Boolean = true,
-    val sma21: Boolean = true,
+    val ma0: Boolean = true,
+    val ma1: Boolean = true,
+    val ma2: Boolean = false,
+    val ma3: Boolean = false,
     val ichimoku: Boolean = true,
     val volumeProfile: Boolean = true,
     val rsi: Boolean = true,
     val volume: Boolean = true,
 ) {
     fun isVisible(id: ChartIndicatorId): Boolean = when (id) {
-        ChartIndicatorId.Ema9 -> ema9
-        ChartIndicatorId.Sma21 -> sma21
+        ChartIndicatorId.Ma0 -> ma0
+        ChartIndicatorId.Ma1 -> ma1
+        ChartIndicatorId.Ma2 -> ma2
+        ChartIndicatorId.Ma3 -> ma3
         ChartIndicatorId.Ichimoku -> ichimoku
         ChartIndicatorId.VolumeProfile -> volumeProfile
         ChartIndicatorId.Rsi14 -> rsi
         ChartIndicatorId.VolumeRibbon -> volume
     }
 
+    fun isMaVisible(index: Int): Boolean = when (index) {
+        0 -> ma0
+        1 -> ma1
+        2 -> ma2
+        3 -> ma3
+        else -> false
+    }
+
     fun toggle(id: ChartIndicatorId): ChartOverlayVisibility = when (id) {
-        ChartIndicatorId.Ema9 -> copy(ema9 = !ema9)
-        ChartIndicatorId.Sma21 -> copy(sma21 = !sma21)
+        ChartIndicatorId.Ma0 -> copy(ma0 = !ma0)
+        ChartIndicatorId.Ma1 -> copy(ma1 = !ma1)
+        ChartIndicatorId.Ma2 -> copy(ma2 = !ma2)
+        ChartIndicatorId.Ma3 -> copy(ma3 = !ma3)
         ChartIndicatorId.Ichimoku -> copy(ichimoku = !ichimoku)
         ChartIndicatorId.VolumeProfile -> copy(volumeProfile = !volumeProfile)
         ChartIndicatorId.Rsi14 -> copy(rsi = !rsi)
@@ -100,13 +119,14 @@ data class ChartOverlayVisibility(
     fun activeCount(): Int = ChartIndicatorId.entries.count { isVisible(it) }
 
     companion object {
-        val AllOn: ChartOverlayVisibility = ChartOverlayVisibility()
+        val Defaults: ChartOverlayVisibility = ChartOverlayVisibility()
+        val AllOn: ChartOverlayVisibility = ChartOverlayVisibility(
+            ma2 = true,
+            ma3 = true,
+        )
     }
 }
 
-/**
- * F1×B1 swatches only — cycling wells never invents hex.
- */
 enum class OverlaySwatch {
     Plasma,
     Bloom,
@@ -139,8 +159,10 @@ fun OverlaySwatch.next(): OverlaySwatch {
 }
 
 data class ChartIndicatorPalette(
-    val ema9: OverlaySwatch = OverlaySwatch.Plasma,
-    val sma21: OverlaySwatch = OverlaySwatch.Bloom,
+    val ma0: OverlaySwatch = OverlaySwatch.Plasma,
+    val ma1: OverlaySwatch = OverlaySwatch.Bloom,
+    val ma2: OverlaySwatch = OverlaySwatch.Ice,
+    val ma3: OverlaySwatch = OverlaySwatch.Muted,
     val ichimokuTenkan: OverlaySwatch = OverlaySwatch.Ice,
     val ichimokuKijun: OverlaySwatch = OverlaySwatch.Bloom,
     val ichimokuCloud: OverlaySwatch = OverlaySwatch.Acrylic,
@@ -151,19 +173,31 @@ data class ChartIndicatorPalette(
     val volumeBear: OverlaySwatch = OverlaySwatch.Neg,
 ) {
     fun wells(id: ChartIndicatorId): List<OverlaySwatch> = when (id) {
-        ChartIndicatorId.Ema9 -> listOf(ema9)
-        ChartIndicatorId.Sma21 -> listOf(sma21)
+        ChartIndicatorId.Ma0 -> listOf(ma0)
+        ChartIndicatorId.Ma1 -> listOf(ma1)
+        ChartIndicatorId.Ma2 -> listOf(ma2)
+        ChartIndicatorId.Ma3 -> listOf(ma3)
         ChartIndicatorId.Ichimoku -> listOf(ichimokuTenkan, ichimokuKijun, ichimokuCloud)
         ChartIndicatorId.VolumeProfile -> listOf(volumeProfile)
         ChartIndicatorId.Rsi14 -> listOf(rsi, rsiGuide)
         ChartIndicatorId.VolumeRibbon -> listOf(volumeBull, volumeBear)
     }
 
+    fun maSwatch(index: Int): OverlaySwatch = when (index) {
+        0 -> ma0
+        1 -> ma1
+        2 -> ma2
+        3 -> ma3
+        else -> OverlaySwatch.Plasma
+    }
+
     fun cycleWell(id: ChartIndicatorId, wellIndex: Int): ChartIndicatorPalette {
         val i = wellIndex.coerceAtLeast(0)
         return when (id) {
-            ChartIndicatorId.Ema9 -> copy(ema9 = ema9.next())
-            ChartIndicatorId.Sma21 -> copy(sma21 = sma21.next())
+            ChartIndicatorId.Ma0 -> copy(ma0 = ma0.next())
+            ChartIndicatorId.Ma1 -> copy(ma1 = ma1.next())
+            ChartIndicatorId.Ma2 -> copy(ma2 = ma2.next())
+            ChartIndicatorId.Ma3 -> copy(ma3 = ma3.next())
             ChartIndicatorId.Ichimoku -> when (i) {
                 0 -> copy(ichimokuTenkan = ichimokuTenkan.next())
                 1 -> copy(ichimokuKijun = ichimokuKijun.next())
@@ -183,16 +217,29 @@ data class ChartIndicatorPalette(
         }
     }
 
-    fun legendColor(id: ChartIndicatorId): Color? = when (id) {
-        ChartIndicatorId.Ema9 -> ema9.toColor()
-        ChartIndicatorId.Sma21 -> sma21.toColor()
-        ChartIndicatorId.Ichimoku -> ichimokuCloud.toColor()
-        ChartIndicatorId.VolumeProfile -> volumeProfile.toColor()
-        ChartIndicatorId.Rsi14 -> null
-        ChartIndicatorId.VolumeRibbon -> null
-    }
-
     companion object {
         val Defaults: ChartIndicatorPalette = ChartIndicatorPalette()
     }
 }
+
+/** Short, decisive period/type choices — not a full TradingView menu. */
+object ChartParamChoices {
+    val maTypes: List<MaType> = listOf(MaType.EMA, MaType.SMA)
+    val maPeriods: List<Int> = listOf(8, 9, 21, 50, 200)
+    val rsiPeriods: List<Int> = listOf(7, 14, 21)
+    val ichimokuTenkan: List<Int> = listOf(7, 9, 12)
+    val ichimokuKijun: List<Int> = listOf(22, 26, 33)
+    val ichimokuSenkou: List<Int> = listOf(44, 52, 66)
+    val volumeSmaPeriods: List<Int> = listOf(10, 20, 50)
+    val vpLookbacks: List<Int> = listOf(12, 24, 48)
+}
+
+fun IndicatorParams.withMa(index: Int, spec: MaSpec): IndicatorParams {
+    val next = movingAverages.toMutableList()
+    if (index !in next.indices) return this
+    next[index] = spec
+    return copy(movingAverages = next)
+}
+
+fun IndicatorParams.withIchimoku(block: (IchimokuParams) -> IchimokuParams): IndicatorParams =
+    copy(ichimoku = block(ichimoku))

@@ -406,7 +406,7 @@ fun CandleChart(
         }
         if (showRsiPane && panes.rsiHeight > 1f) {
             drawContext.canvas.nativeCanvas.drawText(
-                "RSI 14",
+                "RSI ${overlay?.params?.rsiPeriod ?: 14}",
                 panes.plotLeft + 4f,
                 panes.rsiTop + axisPaint.textSize + 2f,
                 axisPaint,

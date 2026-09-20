@@ -2,6 +2,7 @@ package com.cavin.confluence.feature.chart
 
 import com.cavin.confluence.indicators.IndicatorBar
 import com.cavin.confluence.indicators.IndicatorCalc
+import com.cavin.confluence.indicators.IndicatorParams
 import com.cavin.confluence.indicators.SnapshotCutoff
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -28,6 +29,7 @@ class ChartAsOfHonestyTest {
         assertTrue(fenced.size > 276)
         val i = 250
         val adapter = ChartAsOfOverlays.fromBars(bars, cutoff)
+        assertEquals(IndicatorParams.DEFAULT, adapter.params)
         val known = adapter.chikouPlotKnownAt(i)
         assertNull(known)
         val full = IndicatorCalc.evaluate(bars, cutoff)
@@ -67,6 +69,23 @@ class ChartAsOfHonestyTest {
         assertEquals(asOf.ema21.values[i], last.ema21.values[i])
         assertEquals(asOf.ichimoku.tenkan.values[i], last.ichimoku.tenkan.values[i])
         assertEquals(asOf.ichimoku.senkouA.values[i], last.ichimoku.senkouA.values[i])
+    }
+
+    @Test
+    fun customParamsFlowThroughEvaluateAsOfWithoutPeek() {
+        val bars = load1h()
+        val custom = IndicatorParams(rsiPeriod = 7, volumeProfileLookback = 12)
+        val adapter = ChartAsOfOverlays.fromBars(bars, cutoff, custom)
+        assertEquals(custom, adapter.params)
+        val i = 250
+        val asOf = adapter.evaluateAt(i)
+        assertEquals(7, asOf.params.rsiPeriod)
+        assertEquals(12, asOf.volumeProfile.lookbackBarsRequested)
+        assertNull(adapter.chikouPlotKnownAt(i))
+        val full = IndicatorCalc.evaluate(bars, cutoff, custom)
+        assertNotEquals(full.volumeProfile.pointOfControl!!, adapter.volumeProfileAt(i).pointOfControl!!, 1.0)
+        val last = adapter.asOfLast
+        assertEquals(asOf.rsi.values[i], last.rsi.values[i])
     }
 
     @Test

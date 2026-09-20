@@ -60,6 +60,7 @@ import com.cavin.confluence.data.model.HealthStatus
 import com.cavin.confluence.data.model.Timeframe
 import com.cavin.confluence.data.snapshot.MdSnapshotStore
 import com.cavin.confluence.indicators.DayOneIndicators
+import com.cavin.confluence.indicators.IndicatorParams
 import com.cavin.confluence.indicators.SnapshotCutoff
 
 /** V2 board TF chips (1m / 15m / 1H / 4H / 1D). Extra TFs appear if last-used is 5m/1W. */
@@ -118,8 +119,10 @@ fun ChartRoute(
                 ChartIndicatorsSheet(
                     overlays = state.overlays,
                     palette = state.overlayPalette,
+                    params = state.params,
                     onToggle = vm::toggleIndicator,
                     onCycleWell = vm::cycleIndicatorWell,
+                    onParamsChange = vm::updateParams,
                     onBack = { settingsOpen = false },
                 )
             }
@@ -147,12 +150,16 @@ fun ChartScreen(
             ?.takeIf { it.contains("UTC") }
             ?: ChartHonesty.packagedUtcLabel,
     )
-    val overlaySeriesKey = indicatorSeriesKey(state.timeframe.wire, state.candles)
+    val overlaySeriesKey = indicatorSeriesKey(state.timeframe.wire, state.candles, state.params)
     val indicators = remember(overlaySeriesKey, state.indicators) {
         when {
             state.indicators != null -> state.indicators
             state.candles.isEmpty() -> null
-            else -> evaluateDayOneIndicators(state.candles, SnapshotCutoff.PACKAGED_2026_09_19)
+            else -> evaluateDayOneIndicators(
+                state.candles,
+                SnapshotCutoff.PACKAGED_2026_09_19,
+                state.params,
+            )
         }
     }
     val overlays = state.overlays.copy(volume = state.showVolume)
@@ -289,6 +296,7 @@ fun ChartScreen(
                         OverlayLegendRow(
                             overlays = overlays,
                             palette = palette,
+                            params = state.params,
                             modifier = Modifier
                                 .align(Alignment.TopStart)
                                 .padding(start = Spacing.xs, top = Spacing.xs),
@@ -360,7 +368,10 @@ private fun OverlayHonestyCaption(
         if (fence.droppedOvershootCount > 0) {
             add("Fence dropped ${fence.droppedOvershootCount} bars after cutoff")
         }
-        if ((overlays.ema9 || overlays.sma21) && indicators.sma200WarmupIncomplete) {
+        if ((overlays.ma0 || overlays.ma1 || overlays.ma2 || overlays.ma3) &&
+            indicators.sma200WarmupIncomplete &&
+            indicators.params.movingAverages.any { it.period >= 200 }
+        ) {
             add("SMA200 undefined (${indicators.bars.size} < 200)")
         }
     }
@@ -413,11 +424,12 @@ internal fun chartProofUiState(
     count: Int = 80,
     showVolume: Boolean = true,
     crosshair: Candle? = null,
-    overlays: ChartOverlayVisibility = ChartOverlayVisibility.AllOn,
+    overlays: ChartOverlayVisibility = ChartOverlayVisibility.Defaults,
     palette: ChartIndicatorPalette = ChartIndicatorPalette.Defaults,
+    params: IndicatorParams = IndicatorParams.DEFAULT,
 ): ChartUiState {
     val candles = FakeFixtures.sampleClosedCandles(count = count, timeframe = timeframe)
-    val indicators = evaluateDayOneIndicators(candles, SnapshotCutoff.PACKAGED_2026_09_19)
+    val indicators = evaluateDayOneIndicators(candles, SnapshotCutoff.PACKAGED_2026_09_19, params)
     val visibility = overlays.copy(volume = showVolume)
     return ChartUiState(
         loading = false,
@@ -427,6 +439,7 @@ internal fun chartProofUiState(
         showVolume = showVolume,
         overlays = visibility,
         overlayPalette = palette,
+        params = params,
         indicators = indicators,
         crosshair = crosshair ?: candles.lastOrNull(),
     )
@@ -515,10 +528,12 @@ internal fun ChartPreviewOverlays() {
 internal fun ChartPreviewIndicatorsSheet() {
     ConfluenceTheme {
         ChartIndicatorsSheet(
-            overlays = ChartOverlayVisibility.AllOn,
+            overlays = ChartOverlayVisibility.Defaults,
             palette = ChartIndicatorPalette.Defaults,
+            params = IndicatorParams.DEFAULT,
             onToggle = {},
             onCycleWell = { _, _ -> },
+            onParamsChange = {},
             onBack = {},
         )
     }

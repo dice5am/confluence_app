@@ -43,8 +43,9 @@ internal object ChartOverlayRenderer {
                 hi = expanded.second
             }
         }
-        if (overlays.ema9) consider(indicators.ema9)
-        if (overlays.sma21) consider(indicators.ema21)
+        for (i in indicators.movingAverages.indices) {
+            if (overlays.isMaVisible(i)) consider(indicators.movingAverages[i].series)
+        }
         if (overlays.ichimoku) {
             consider(indicators.ichimoku.tenkan)
             consider(indicators.ichimoku.kijun)
@@ -145,11 +146,18 @@ internal object ChartOverlayRenderer {
                     candleWidthPx = candleWidthPx,
                 )
             }
-            if (overlays.sma21) {
-                drawSeries(candles, indicators.ema21, palette.sma21.toColor(), stroke, win, yPrice, xSlot)
-            }
-            if (overlays.ema9) {
-                drawSeries(candles, indicators.ema9, palette.ema9.toColor(), stroke, win, yPrice, xSlot)
+            for (i in indicators.movingAverages.indices.reversed()) {
+                if (!overlays.isMaVisible(i)) continue
+                val series = indicators.movingAverages[i].series
+                drawSeries(
+                    candles,
+                    series,
+                    palette.maSwatch(i).toColor(),
+                    stroke,
+                    win,
+                    yPrice,
+                    xSlot,
+                )
             }
             if (overlays.volumeProfile) {
                 drawVolumeProfileLevels(

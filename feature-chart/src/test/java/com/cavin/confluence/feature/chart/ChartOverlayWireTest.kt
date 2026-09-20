@@ -4,6 +4,7 @@ import com.cavin.confluence.data.fake.FakeFixtures
 import com.cavin.confluence.data.model.Timeframe
 import com.cavin.confluence.data.snapshot.MdSnapshotStore
 import com.cavin.confluence.indicators.IndicatorCalc
+import com.cavin.confluence.indicators.IndicatorParams
 import com.cavin.confluence.indicators.SnapshotCutoff
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -58,11 +59,20 @@ class ChartOverlayWireTest {
         assertNotNull(fromAdapter.volumeProfile.pointOfControl)
         assertNotNull(fromAdapter.volumeProfile.valueAreaHigh)
         assertNotNull(fromAdapter.volumeProfile.valueAreaLow)
+        assertEquals(fromEngine.params, fromAdapter.params)
+        assertEquals(IndicatorParams.DEFAULT, fromAdapter.params)
+        val custom = evaluateDayOneIndicators(
+            candles,
+            cutoff,
+            IndicatorParams(rsiPeriod = 7),
+        )
+        assertEquals(7, custom.params.rsiPeriod)
+        assertTrue(custom.rsi.lastFinite() != fromAdapter.rsi.lastFinite())
         val aligned = candlesAlignedToIndicators(candles, fromAdapter)
         assertEquals(fromAdapter.bars.size, aligned.size)
         assertEquals(fromAdapter.bars.last().openTimeMs, aligned.last().openTimeMs)
         assertTrue(aligned.all { it.closeTimeMs <= cutoff.cutoffMs })
-        val full = IndicatorCalc.evaluate(bars, cutoff)
+        val full = IndicatorCalc.evaluate(bars, cutoff, IndicatorParams.DEFAULT)
         assertEquals(full.volumeProfile.pointOfControl, fromAdapter.volumeProfile.pointOfControl)
     }
 
@@ -110,8 +120,8 @@ class ChartOverlayWireTest {
         assertTrue(names.contains("rsi14"))
         assertTrue(names.contains("volumeSma20"))
         assertTrue(names.contains("ema9"))
-        assertTrue(names.contains("ichimoku"))
-        assertTrue(names.contains("volumeProfile"))
+        assertTrue(names.contains("params"))
+        assertTrue(names.contains("movingAverages"))
     }
 
     @Test
@@ -119,13 +129,13 @@ class ChartOverlayWireTest {
         var vis = ChartOverlayVisibility.AllOn
         vis = vis.toggle(ChartIndicatorId.Ichimoku)
         assertFalse(vis.ichimoku)
-        assertTrue(vis.ema9)
-        assertTrue(vis.sma21)
+        assertTrue(vis.ma0)
+        assertTrue(vis.ma1)
         vis = vis.toggle(ChartIndicatorId.VolumeRibbon)
         assertFalse(vis.volume)
         vis = vis.toggle(ChartIndicatorId.Ichimoku)
         assertTrue(vis.ichimoku)
-        assertEquals(5, vis.activeCount())
+        assertEquals(7, vis.activeCount())
     }
 
     @Test

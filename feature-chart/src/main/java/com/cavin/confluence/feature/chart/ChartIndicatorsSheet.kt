@@ -3,6 +3,7 @@ package com.cavin.confluence.feature.chart
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,17 +45,22 @@ import com.cavin.confluence.core.ui.theme.ConfluenceType
 import com.cavin.confluence.core.ui.theme.ConfluenceTypography
 import com.cavin.confluence.core.ui.theme.Spacing
 import com.cavin.confluence.core.ui.theme.confluenceScreenGutter
+import com.cavin.confluence.indicators.IndicatorParams
+import com.cavin.confluence.indicators.MaSpec
+import com.cavin.confluence.indicators.MaType
 
 /**
  * V2 denser full-height push sheet — section headers, per-indicator toggle,
- * larger color wells, segmented "On chart" chip. F1×B1 acrylic cards.
+ * color wells, short param chips (type / period / lookback). F1×B1 acrylic.
  */
 @Composable
 fun ChartIndicatorsSheet(
     overlays: ChartOverlayVisibility,
     palette: ChartIndicatorPalette,
+    params: IndicatorParams,
     onToggle: (ChartIndicatorId) -> Unit,
     onCycleWell: (ChartIndicatorId, Int) -> Unit,
+    onParamsChange: (IndicatorParams) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -113,10 +119,12 @@ fun ChartIndicatorsSheet(
                     for (id in ids) {
                         IndicatorSettingsCard(
                             id = id,
+                            params = params,
                             visible = overlays.isVisible(id),
                             wells = palette.wells(id),
                             onToggle = { onToggle(id) },
                             onCycleWell = { well -> onCycleWell(id, well) },
+                            onParamsChange = onParamsChange,
                         )
                     }
                 }
@@ -129,10 +137,12 @@ fun ChartIndicatorsSheet(
 @Composable
 private fun IndicatorSettingsCard(
     id: ChartIndicatorId,
+    params: IndicatorParams,
     visible: Boolean,
     wells: List<OverlaySwatch>,
     onToggle: () -> Unit,
     onCycleWell: (Int) -> Unit,
+    onParamsChange: (IndicatorParams) -> Unit,
 ) {
     GlassCard(
         modifier = Modifier.testTag("indicatorRow-${id.name}"),
@@ -146,7 +156,7 @@ private fun IndicatorSettingsCard(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = id.settingsTitle(),
+                    text = id.settingsTitle(params),
                     style = ConfluenceTypography.titleMedium,
                     color = ConfluenceColors.Text,
                 )
@@ -175,6 +185,167 @@ private fun IndicatorSettingsCard(
                     onClick = { onCycleWell(index) },
                     modifier = Modifier.testTag("indicatorWell-${id.name}-$index"),
                 )
+            }
+        }
+        Spacer(Modifier.height(Spacing.sm))
+        IndicatorParamControls(id = id, params = params, onParamsChange = onParamsChange)
+    }
+}
+
+@Composable
+private fun IndicatorParamControls(
+    id: ChartIndicatorId,
+    params: IndicatorParams,
+    onParamsChange: (IndicatorParams) -> Unit,
+) {
+    val maIndex = id.maIndex()
+    when {
+        maIndex != null -> {
+            val spec = params.movingAverages.getOrNull(maIndex) ?: return
+            ParamChipRow(
+                label = "Type",
+                options = ChartParamChoices.maTypes.map { it.name },
+                selected = spec.type.name,
+                onSelect = { name ->
+                    val type = MaType.entries.first { it.name == name }
+                    onParamsChange(params.withMa(maIndex, MaSpec(type, spec.period)))
+                },
+                testTag = "maType-$maIndex",
+            )
+            Spacer(Modifier.height(Spacing.xs))
+            ParamChipRow(
+                label = "Period",
+                options = mergeChoice(ChartParamChoices.maPeriods, spec.period).map { it.toString() },
+                selected = spec.period.toString(),
+                onSelect = { value ->
+                    onParamsChange(params.withMa(maIndex, MaSpec(spec.type, value.toInt())))
+                },
+                testTag = "maPeriod-$maIndex",
+            )
+        }
+        id == ChartIndicatorId.Rsi14 -> {
+            ParamChipRow(
+                label = "Length",
+                options = mergeChoice(ChartParamChoices.rsiPeriods, params.rsiPeriod).map { it.toString() },
+                selected = params.rsiPeriod.toString(),
+                onSelect = { onParamsChange(params.copy(rsiPeriod = it.toInt())) },
+                testTag = "rsiPeriod",
+            )
+        }
+        id == ChartIndicatorId.Ichimoku -> {
+            ParamChipRow(
+                label = "Tenkan",
+                options = mergeChoice(ChartParamChoices.ichimokuTenkan, params.ichimoku.tenkanPeriod)
+                    .map { it.toString() },
+                selected = params.ichimoku.tenkanPeriod.toString(),
+                onSelect = { value ->
+                    onParamsChange(params.withIchimoku { it.copy(tenkanPeriod = value.toInt()) })
+                },
+                testTag = "ichiTenkan",
+            )
+            Spacer(Modifier.height(Spacing.xs))
+            ParamChipRow(
+                label = "Kijun",
+                options = mergeChoice(ChartParamChoices.ichimokuKijun, params.ichimoku.kijunPeriod)
+                    .map { it.toString() },
+                selected = params.ichimoku.kijunPeriod.toString(),
+                onSelect = { value ->
+                    onParamsChange(params.withIchimoku { it.copy(kijunPeriod = value.toInt()) })
+                },
+                testTag = "ichiKijun",
+            )
+            Spacer(Modifier.height(Spacing.xs))
+            ParamChipRow(
+                label = "Senkou",
+                options = mergeChoice(ChartParamChoices.ichimokuSenkou, params.ichimoku.senkouBPeriod)
+                    .map { it.toString() },
+                selected = params.ichimoku.senkouBPeriod.toString(),
+                onSelect = { value ->
+                    onParamsChange(params.withIchimoku { it.copy(senkouBPeriod = value.toInt()) })
+                },
+                testTag = "ichiSenkou",
+            )
+        }
+        id == ChartIndicatorId.VolumeRibbon -> {
+            ParamChipRow(
+                label = "Vol SMA",
+                options = mergeChoice(ChartParamChoices.volumeSmaPeriods, params.volumeSmaPeriod)
+                    .map { it.toString() },
+                selected = params.volumeSmaPeriod.toString(),
+                onSelect = { onParamsChange(params.copy(volumeSmaPeriod = it.toInt())) },
+                testTag = "volSma",
+            )
+        }
+        id == ChartIndicatorId.VolumeProfile -> {
+            ParamChipRow(
+                label = "Lookback",
+                options = mergeChoice(ChartParamChoices.vpLookbacks, params.volumeProfileLookback)
+                    .map { it.toString() },
+                selected = params.volumeProfileLookback.toString(),
+                onSelect = { onParamsChange(params.copy(volumeProfileLookback = it.toInt())) },
+                testTag = "vpLookback",
+            )
+        }
+    }
+}
+
+private fun mergeChoice(choices: List<Int>, current: Int): List<Int> =
+    if (current in choices) choices else (choices + current).sorted()
+
+@Composable
+private fun ParamChipRow(
+    label: String,
+    options: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+    testTag: String,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        Text(
+            text = label,
+            style = ConfluenceType.Telemetry,
+            color = ConfluenceColors.Dim,
+            modifier = Modifier.padding(end = Spacing.xs),
+        )
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(rememberScrollState())
+                .testTag(testTag),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            for (option in options) {
+                val on = option == selected
+                val shape = RoundedCornerShape(ConfluenceDimens.chipRadius)
+                Box(
+                    modifier = Modifier
+                        .clip(shape)
+                        .background(
+                            if (on) ConfluenceColors.Plasma.copy(alpha = 0.25f)
+                            else ConfluenceColors.VoidElevated.copy(alpha = 0.55f),
+                            shape,
+                        )
+                        .border(
+                            1.dp,
+                            if (on) ConfluenceColors.Plasma else ConfluenceColors.BorderSubtle,
+                            shape,
+                        )
+                        .clickable { onSelect(option) }
+                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                        .testTag("$testTag-$option"),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = option,
+                        style = ConfluenceType.Telemetry,
+                        fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (on) ConfluenceColors.Ice else ConfluenceColors.Muted,
+                    )
+                }
             }
         }
     }
@@ -229,10 +400,12 @@ private fun ColorWell(
 internal fun ChartIndicatorsSheetPreview() {
     ConfluenceTheme {
         ChartIndicatorsSheet(
-            overlays = ChartOverlayVisibility.AllOn,
+            overlays = ChartOverlayVisibility.Defaults,
             palette = ChartIndicatorPalette.Defaults,
+            params = IndicatorParams.DEFAULT,
             onToggle = {},
             onCycleWell = { _, _ -> },
+            onParamsChange = {},
             onBack = {},
         )
     }
