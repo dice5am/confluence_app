@@ -46,4 +46,24 @@ class IchimokuTest {
         assertThat(result.chikou.values[last - Ichimoku.DISPLACEMENT]).isWithin(1e-9).of(bars.last().close)
         assertThat(result.chikou.values[last]).isNull()
     }
+
+    @Test
+    fun customTenkanPeriodDefinesEarlierThanDefault() {
+        val bars = (0 until 9).map { i ->
+            TestBars.bar(
+                openTimeMs = 1_000_000L + i * 3_600_000L,
+                open = 100.0,
+                high = 110.0 + i,
+                low = 90.0,
+                close = 100.0,
+            )
+        }
+        val custom = Ichimoku.compute(
+            bars,
+            IchimokuParams(tenkanPeriod = 8, kijunPeriod = 26, senkouBPeriod = 52, displacement = 26),
+        )
+        assertThat(custom.tenkan.values[6]).isNull()
+        assertThat(custom.tenkan.values[7]).isNotNull()
+        assertThat(Ichimoku.compute(bars).tenkan.values[7]).isNull()
+    }
 }

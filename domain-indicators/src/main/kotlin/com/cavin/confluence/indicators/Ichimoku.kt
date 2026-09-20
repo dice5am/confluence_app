@@ -4,7 +4,8 @@ package com.cavin.confluence.indicators
  * Ichimoku with standard defaults 9 / 26 / 52, displacement 26 (ALT-1.2 §3.6).
  *
  * Tenkan / Kijun / Senkou-B raw are Donchian midpoints at calculation time
- * (known at bar `i`'s `closeTimeMs`).
+ * (known at bar `i`'s `closeTimeMs`). Periods default to 9 / 26 / 52 with
+ * displacement 26; pass [IchimokuParams] to override.
  *
  * Senkou A/B in [IchimokuResult.senkouA] / [IchimokuResult.senkouB] are
  * **plot-aligned** (raw value from `i - displacement`). Those plot values
@@ -27,7 +28,14 @@ object Ichimoku {
     const val SENKOU_B_PERIOD: Int = 52
     const val DISPLACEMENT: Int = 26
 
-    fun compute(bars: List<IndicatorBar>): IchimokuResult {
+    fun compute(
+        bars: List<IndicatorBar>,
+        params: IchimokuParams = IchimokuParams.DEFAULT,
+    ): IchimokuResult {
+        val tenkanPeriod = params.tenkanPeriod
+        val kijunPeriod = params.kijunPeriod
+        val senkouBPeriod = params.senkouBPeriod
+        val displacement = params.displacement
         val n = bars.size
         val times = bars.map { it.openTimeMs }
         if (n == 0) {
@@ -39,7 +47,7 @@ object Ichimoku {
                 senkouARaw = AlignedSeries(emptyList(), emptyList()),
                 senkouBRaw = AlignedSeries(emptyList(), emptyList()),
                 chikou = AlignedSeries(emptyList(), emptyList()),
-                displacement = DISPLACEMENT,
+                displacement = displacement,
                 forwardCloud = emptyList(),
             )
         }
@@ -47,9 +55,9 @@ object Ichimoku {
         val lows = DoubleArray(n) { bars[it].low }
         val closes = DoubleArray(n) { bars[it].close }
 
-        val tenkanRaw = Array<Double?>(n) { donchianMid(highs, lows, it, TENKAN_PERIOD) }
-        val kijunRaw = Array<Double?>(n) { donchianMid(highs, lows, it, KIJUN_PERIOD) }
-        val senkouBRaw = Array<Double?>(n) { donchianMid(highs, lows, it, SENKOU_B_PERIOD) }
+        val tenkanRaw = Array<Double?>(n) { donchianMid(highs, lows, it, tenkanPeriod) }
+        val kijunRaw = Array<Double?>(n) { donchianMid(highs, lows, it, kijunPeriod) }
+        val senkouBRaw = Array<Double?>(n) { donchianMid(highs, lows, it, senkouBPeriod) }
         val senkouARaw = Array<Double?>(n) { i ->
             val t = tenkanRaw[i]
             val k = kijunRaw[i]
@@ -57,23 +65,23 @@ object Ichimoku {
         }
 
         val senkouAPlot = Array<Double?>(n) { i ->
-            val src = i - DISPLACEMENT
+            val src = i - displacement
             if (src >= 0) senkouARaw[src] else null
         }
         val senkouBPlot = Array<Double?>(n) { i ->
-            val src = i - DISPLACEMENT
+            val src = i - displacement
             if (src >= 0) senkouBRaw[src] else null
         }
         val chikouPlot = Array<Double?>(n) { i ->
-            val src = i + DISPLACEMENT
+            val src = i + displacement
             if (src < n) closes[src] else null
         }
 
         val durationMs = barDurationMs(bars)
         val lastOpen = bars.last().openTimeMs
-        val forward = ArrayList<IchimokuForwardPoint>(DISPLACEMENT)
-        for (k in 1..DISPLACEMENT) {
-            val src = n - 1 + k - DISPLACEMENT
+        val forward = ArrayList<IchimokuForwardPoint>(displacement)
+        for (k in 1..displacement) {
+            val src = n - 1 + k - displacement
             if (src < 0) continue
             val a = senkouARaw[src]
             val b = senkouBRaw[src]
@@ -96,7 +104,7 @@ object Ichimoku {
             senkouARaw = AlignedSeries(times, senkouARaw.toList()),
             senkouBRaw = AlignedSeries(times, senkouBRaw.toList()),
             chikou = AlignedSeries(times, chikouPlot.toList()),
-            displacement = DISPLACEMENT,
+            displacement = displacement,
             forwardCloud = forward,
         )
     }

@@ -7,7 +7,8 @@ import kotlin.math.min
  * Closed-bar volume profile (POC / VAH / VAL).
  *
  * Deterministic session — **no manual range**:
- * last [LOOKBACK_BARS] fenced closed bars of the input series (locked at 24).
+ * last [LOOKBACK_BARS] fenced closed bars of the input series (default 24;
+ * overridable via [compute] / [IndicatorParams.volumeProfileLookback]).
  * Callers should prefer 1h+ (ALT-1.2 §3.7). On 1h this is ~24h of 1h candles,
  * **not** an America/Toronto cash session and not tick/aggTrade data.
  *
@@ -26,14 +27,25 @@ object VolumeProfile {
             "Snapshot 1h depth is ~20d, well under MD-1.1 1m caps; this engine never " +
             "assumes >90d of 1m."
 
+    fun sessionNote(lookbackBars: Int): String =
+        "Fixed lookback: last $lookbackBars closed bars of the provided series " +
+            "(prefer 1h+). Not a Toronto session, not a user-drawn range, not tick VP. " +
+            "Snapshot 1h depth is ~20d, well under MD-1.1 1m caps; this engine never " +
+            "assumes >90d of 1m."
+
     /**
-     * Last-[LOOKBACK_BARS] snapshot of [fencedClosedBars] (as-of the last
+     * Last-[lookbackBars] snapshot of [fencedClosedBars] (as-of the last
      * provided bar). Not a historical series — see [computeAsOf].
+     * Default lookback is [LOOKBACK_BARS] (24).
      */
-    fun compute(fencedClosedBars: List<IndicatorBar>): VolumeProfileResult {
-        val window = fencedClosedBars.takeLast(LOOKBACK_BARS)
+    fun compute(
+        fencedClosedBars: List<IndicatorBar>,
+        lookbackBars: Int = LOOKBACK_BARS,
+    ): VolumeProfileResult {
+        require(lookbackBars > 0)
+        val window = fencedClosedBars.takeLast(lookbackBars)
         if (window.isEmpty()) {
-            return VolumeProfileResult.empty("no closed bars in lookback")
+            return VolumeProfileResult.empty("no closed bars in lookback", lookbackBars)
         }
         var priceLow = Double.POSITIVE_INFINITY
         var priceHigh = Double.NEGATIVE_INFINITY
@@ -44,7 +56,7 @@ object VolumeProfile {
             totalVolume += bar.volume
         }
         if (!priceLow.isFinite() || !priceHigh.isFinite() || priceHigh < priceLow) {
-            return VolumeProfileResult.empty("non-finite price range")
+            return VolumeProfileResult.empty("non-finite price range", lookbackBars)
         }
 
         val rowCount = ROW_COUNT
@@ -100,9 +112,9 @@ object VolumeProfile {
         val vaHigh = if (vaHighIdx >= 0) bins[vaHighIdx].priceHigh else null
 
         return VolumeProfileResult(
-            lookbackBarsRequested = LOOKBACK_BARS,
+            lookbackBarsRequested = lookbackBars,
             usedBarCount = window.size,
-            lookbackLimited = window.size < LOOKBACK_BARS,
+            lookbackLimited = window.size < lookbackBars,
             windowFirstOpenTimeMs = window.first().openTimeMs,
             windowLastCloseTimeMs = window.last().closeTimeMs,
             rowCount = rowCount,
@@ -112,20 +124,22 @@ object VolumeProfile {
             valueAreaLow = valLow,
             totalVolume = totalVolume,
             bins = bins,
-            notes = SESSION_NOTE,
+            notes = sessionNote(lookbackBars),
         )
     }
 
     /**
-     * Volume profile known at [asOfCloseTimeMs]: last [LOOKBACK_BARS] fenced
+     * Volume profile known at [asOfCloseTimeMs]: last [lookbackBars] fenced
      * closed bars with `closeTimeMs <= asOfCloseTimeMs`. Future bars in
-     * [fencedClosedBars] are ignored.
+     * [fencedClosedBars] are ignored. Default lookback is [LOOKBACK_BARS].
      */
     fun computeAsOf(
         fencedClosedBars: List<IndicatorBar>,
         asOfCloseTimeMs: Long,
+        lookbackBars: Int = LOOKBACK_BARS,
     ): VolumeProfileResult = compute(
         fencedClosedBars.filter { it.closeTimeMs <= asOfCloseTimeMs },
+        lookbackBars,
     )
 
     private fun distribute(
@@ -233,8 +247,11 @@ data class VolumeProfileResult(
     val notes: String,
 ) {
     companion object {
-        fun empty(reason: String): VolumeProfileResult = VolumeProfileResult(
-            lookbackBarsRequested = VolumeProfile.LOOKBACK_BARS,
+        fun empty(
+            reason: String,
+            lookbackBars: Int = VolumeProfile.LOOKBACK_BARS,
+        ): VolumeProfileResult = VolumeProfileResult(
+            lookbackBarsRequested = lookbackBars,
             usedBarCount = 0,
             lookbackLimited = true,
             windowFirstOpenTimeMs = null,
@@ -246,7 +263,7 @@ data class VolumeProfileResult(
             valueAreaLow = null,
             totalVolume = 0.0,
             bins = emptyList(),
-            notes = "${VolumeProfile.SESSION_NOTE} ($reason)",
+            notes = "${VolumeProfile.sessionNote(lookbackBars)} ($reason)",
         )
     }
 }

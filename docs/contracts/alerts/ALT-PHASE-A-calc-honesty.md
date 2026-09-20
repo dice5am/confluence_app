@@ -19,8 +19,8 @@ Drop forming (`isFinal == false`) and any bar with `closeTimeMs > cutoffMs`. The
 | 1d | 399 | 399 | `1789775999999` |
 | 1m | 799 | <799 (overshoot dropped) | `<= cutoffMs` |
 
-As-of API: `IndicatorCalc.evaluateAsOf(bars, cutoff, asOfCloseTimeMs)`.  
-`evaluate(bars, cutoff)` is **as-of the last fenced bar only**.
+As-of API: `IndicatorCalc.evaluateAsOf(bars, cutoff, asOfCloseTimeMs)` (optional `params`).  
+`evaluate(bars, cutoff)` is **as-of the last fenced bar only**. Parameterized overloads (`IndicatorParams`) do **not** change the fence: still `isFinal && closeTimeMs <= cutoffMs`, then `closeTimeMs <= asOfCloseTimeMs`. Default params are the day-one five autos (EMA 9/21, SMA 50/200, RSI 14, Ichimoku 9/26/52/26, vol SMA 20, VP last-24).
 
 ## 2. Formula summary (known at `closeTimeMs` of bar `i`)
 
@@ -143,7 +143,7 @@ Causal overlay points (RSI / vol / MAs / Ichimoku known-at-`i` / VP as-of) survi
 
 ## 7. What changed in the engine for this card
 
-- `IndicatorCalc.evaluateAsOf` — global fence, then `closeTimeMs <= asOfCloseTimeMs`.
-- `VolumeProfile.computeAsOf` — last-24 ending at as-of (ignores later bars).
+- `IndicatorCalc.evaluateAsOf` — global fence, then `closeTimeMs <= asOfCloseTimeMs` (optional `IndicatorParams`; defaults keep day-one five autos).
+- `VolumeProfile.computeAsOf` — last-N ending at as-of (default N=24; ignores later bars).
 - `IchimokuResult.senkouARaw` / `senkouBRaw` — values known at `i` vs plot-shifted `senkouA` / `senkouB`.
-- Formulas themselves (RSI Wilder, EMA/SMA, Donchian Ichimoku, 24-bar VP) are unchanged.
+- Formulas themselves (RSI Wilder, EMA/SMA, Donchian Ichimoku, last-N VP) are unchanged at default params.

@@ -253,6 +253,31 @@ class CalcHonestyLookAheadTest {
     }
 
     @Test
+    fun customParamsAsOfStillRespectsCutoffAndPrefix() {
+        val raw = SnapshotFixtures.loadBars("1h")
+        val fenced = CandleFence.apply(raw, cutoff).bars
+        val params = IndicatorParams(
+            movingAverages = listOf(MaSpec(MaType.SMA, 8), MaSpec(MaType.EMA, 21)),
+            rsiPeriod = 7,
+            volumeSmaPeriod = 10,
+            volumeProfileLookback = 10,
+            ichimoku = IchimokuParams(tenkanPeriod = 8),
+        )
+        val i = SAMPLE_1H_AUDIT_INDEX
+        val prefix = IndicatorCalc.evaluate(fenced.take(i + 1), cutoff, params)
+        val asOf = IndicatorCalc.evaluateAsOf(raw, cutoff, fenced[i].closeTimeMs, params)
+        assertThat(asOf.bars).hasSize(i + 1)
+        assertThat(asOf.rsi.values[i]).isEqualTo(prefix.rsi.values[i])
+        assertThat(asOf.ma(MaType.SMA, 8)!!.values[i]).isEqualTo(prefix.ma(MaType.SMA, 8)!!.values[i])
+        assertThat(asOf.volumeProfile.windowLastCloseTimeMs).isEqualTo(fenced[i].closeTimeMs)
+        assertThat(asOf.volumeProfile.usedBarCount).isEqualTo(10)
+        assertThat(asOf.bars.all { it.closeTimeMs <= fenced[i].closeTimeMs }).isTrue()
+        assertThat(asOf.rsi.values[i]).isNotEqualTo(
+            IndicatorCalc.evaluateAsOf(raw, cutoff, fenced[i].closeTimeMs).rsi14.values[i],
+        )
+    }
+
+    @Test
     fun asOfDoesNotLiftGlobalCutoffFence() {
         val raw = SnapshotFixtures.loadBars("1m")
         val fenced = CandleFence.apply(raw, cutoff)
