@@ -136,6 +136,6 @@ class ChartAsOfHonestyTest {
         )
         val path = candidates.firstOrNull { Files.isRegularFile(it) }
             ?: error("md_snapshot/$name not found")
-        return Files.readString(path)
+        return path.toFile().readText()
     }
 }
